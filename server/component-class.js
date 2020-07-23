@@ -41,6 +41,10 @@ class ComponentClass {
     return this.helper
   }
 
+  routes () {
+    return []
+  }
+
   /* ? */
 
   registerCommand () {

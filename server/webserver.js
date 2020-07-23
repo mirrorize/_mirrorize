@@ -51,13 +51,20 @@ class _WebServer {
         for (const component of components) {
           var route = '/' + component.id
           var cb = component.webserve.bind(component)
-          const statics = route + '/static'
-          this.express.use(statics, express.static(path.join(component.dir, 'static')))
-          console.info(`Route for static files '${statics}' is added to webserver.`)
-          const elements = route + '/elements'
-          this.express.use(elements, express.static(path.join(component.dir, 'elements')))
           this.express.all(route, cb)
           console.info(`Route '${route}' is added to webserver.`)
+          const statics = route + '/static'
+          this.express.use(statics, express.static(path.join(component.dir, 'static')))
+          console.info(`Route '${statics}' is added to webserver.`)
+          const elements = route + '/elements'
+          this.express.use(elements, express.static(path.join(component.dir, 'elements')))
+          var xRoutes = component.routes()
+          if (Array.isArray(xRoutes)) {
+            for (const xr of xRoutes) {
+              this.express.all(xr, cb)
+              console.info(`Route '${xr}' is added to webserver.`)
+            }
+          }
         }
         resolve()
       } catch (e) {

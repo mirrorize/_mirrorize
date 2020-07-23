@@ -1,0 +1,48 @@
+.test {
+  background-color: #660;
+  z-index: 1;
+}
+
+h1 {
+  background-color: #123;
+}
+
+mz-clock {
+  color: white;
+  padding: 10px;
+  font-size: 2vw;
+  font-family: var(--font-family-monospace);
+}
+
+mz-clock::part(weekday) {
+  color: yellow;
+}
+
+mz-clock::part(date) {
+  font-family: var(--font-family-sans-serif);
+}
+/*
+mz-clock::part(time) {
+  font-weight: bold;
+  color: white;
+  font-size: 100%;
+  font-family: var(--font-family-monospace);
+}
+
+mz-clock::part(second) {
+  font-size:50%;
+  vertical-align: top;
+}
+
+mz-clock::part(date) {
+  font-size: 40%;
+}
+
+mz-clock::part(weeks) {
+  display:none;
+}
+*/
+
+mz-compliment {
+  font-size: 5vw;
+}

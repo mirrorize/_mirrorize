@@ -1,0 +1,34 @@
+{
+  "name": "mirrorize",
+  "version": "0.0.1",
+  "description": "",
+  "dependencies": {
+    "express": "^4.17.1",
+    "get-google-fonts": "^1.2.2",
+    "ws": "^7.3.0",
+    "yargs": "^15.3.1"
+  },
+  "devDependencies": {
+    "eslint-config-standard": "^14.1.1",
+    "standard": "^14.3.4"
+  },
+  "scripts": {
+    "server": "node ./server/index.js",
+    "client": "electron ./client/index.js",
+    "start": "node ./server/index.js & electron ./client/index.js",
+    "standalone": "node ./server/index.js & electron ./client/index.js",
+    "dev": "MZ_DEV=true node ./server/index.js & electron ./client/index.js",
+    "postinstall": "npm run install3rd",
+    "install3rd": "cd 3rdparty && chmod +x ./install.sh && ./install.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mirrorize/mirrorize.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mirrorize/mirrorize/issues"
+  },
+  "homepage": "https://github.com/mirrorize/mirrorize#readme"
+}

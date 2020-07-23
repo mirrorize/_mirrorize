@@ -7,25 +7,20 @@ var layout = [
       timezone: 'Asia/Tokyo'
     },
     position: {
-      layer: 'foreground'
+      target: '.foreground'
     }
   },
   {
     name: 'mz-clock',
     id: 'test2',
-    config: {
-      dynamicsize: 8
-    },
     position: {
-      layer: 'foreground',
-      column: 'full',
-      row: '3 / 5'
+      target: '.leftBox'
     }
   },
   {
     name: 'mz-compliment',
     position: {
-      layer: 'foreground',
+      target: '.foreground',
       area: '-3 / full / -2 / full'
     }
   }

@@ -23,9 +23,9 @@ export default class extends CustomElement {
           var elem = document.createElement(el.name)
           elem.config = Object.assign({}, elem.config, mergedCfg)
           if (el.id) elem.setAttribute('id', el.id)
-          var layer = null
+          var target = null
           if (el.position) {
-            layer = (el.position.layer) ? el.position.layer : null
+            target = (el.position.target) ? el.position.target : null
             const {
               area = null,
               column = null,
@@ -35,8 +35,8 @@ export default class extends CustomElement {
             if (column) elem.style.gridColumn = column
             if (row) elem.style.gridRow = row
           }
-          if (layer) {
-            this.querySelector(`.layout.${layer}`).appendChild(elem)
+          if (target) {
+            this.querySelector(target).appendChild(elem)
           } else {
             this.appendChild(elem)
           }

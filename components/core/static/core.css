@@ -87,3 +87,10 @@
   z-index: 20;
   opacity: 0.8;
 }
+
+.leftBox {
+  grid-area: A4 / A4 / Z5 / A5;
+  background-color: #333;
+  display: flex;
+  flex-direction: column;
+}

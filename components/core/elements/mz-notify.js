@@ -1,12 +1,12 @@
-/* global CustomElement */
+/* global CustomElement MutationObserver */
 const template = `
 <style>
 .notify {
   position: absolute;
   top: 0;
   left: 0;
-  bottom: 0;
   right: 0;
+  bottom: 0;
   z-index: 999;
 }
 
@@ -14,10 +14,11 @@ const template = `
   position: absolute;
   height: 50%;
   width:50%;
-  display:flex;
+  display:none;
   flex-direction: column;
   align-items: flex-start;
   overflow: hidden;
+  display: hidden;
 }
 
 .notify .container.top {
@@ -73,6 +74,44 @@ export default class extends CustomElement {
     window.MZ.notify = (obj) => {
       this.notify(obj)
     }
+    const checkParent = (dom) => {
+      var allHidden = Array.from(dom.querySelectorAll('.container')).every((child) => {
+        return (window.getComputedStyle(child).getPropertyValue('display') === 'none')
+      })
+      if (allHidden) {
+        this.style.display = 'none'
+      } else {
+        this.style.display = 'block'
+      }
+    }
+    this.observers = []
+    var dom = this.getDOM()
+    var cons = dom.querySelectorAll('.container')
+    for (const c of cons) {
+      const observer = new MutationObserver((mutations, ob) => {
+        const m = mutations[0]
+        const self = m.target
+        if (m.type === 'childList') {
+          if (self.innerHTML.trim() !== '') {
+            self.style.display = 'flex'
+            self.dataset.status = 'working'
+          } else {
+            self.style.display = 'none'
+            self.dataset.status = 'resting'
+          }
+          checkParent(dom)
+        }
+      })
+      observer.observe(c, { childList: true })
+      this.observers.push(observer)
+    }
+  }
+
+  onDisconnected () {
+    for (const ob of this.observers) {
+      ob.disconnect()
+    }
+    this.observers = []
   }
 
   notify (obj) {
@@ -90,8 +129,10 @@ export default class extends CustomElement {
     dom.querySelector(query).appendChild(n)
   }
 
+  /*
   removeNotify (n) {
     var dom = this.getDOM()
     dom.removeChild(n)
   }
+  */
 }

@@ -3,7 +3,6 @@ const http = require('http')
 const https = require('https')
 const fs = require('fs')
 const path = require('path')
-const WebSocket = require('ws')
 
 class _WebServer {
   init (_config) {
@@ -11,7 +10,6 @@ class _WebServer {
       try {
         this.config = _config
         this.express = express()
-        this.wss = null
         this.port = (_config.port) ? _config.port : '8080'
         this.address = (_config.address) ? _config.address : '127.0.0.1'
         this.protocol = (_config.useSecure) ? 'https' : 'http'
@@ -66,7 +64,7 @@ class _WebServer {
     })
   }
 
-  start (transporter = () => {}) {
+  start () {
     return new Promise((resolve, reject) => {
       try {
         this.express.get('/', (req, res) => {
@@ -96,42 +94,12 @@ class _WebServer {
         )
         this.server.listen(this.port, () => {
           console.info('WebServer is started.')
-          this.connectSocket(transporter)
           resolve()
         })
       } catch (e) {
         reject(e)
       }
     })
-  }
-
-  connectSocket (transporter = () => {}) {
-    const connect = () => {
-      const interval = setInterval(() => {
-        this.wss.clients.forEach((ws) => {
-          if (ws.isAlive !== true) return ws.terminate()
-          ws.isAlive = false
-          ws.ping()
-        })
-      }, 10 * 1000)
-
-      this.wss = new WebSocket.Server({ server: this.server })
-      this.wss.on('connection', (ws) => {
-        // console.info('Socket is connected newly.')
-        ws.isAlive = true
-        ws.on('pong', () => {
-          ws.isAlive = true
-        })
-        ws.on('message', (data) => { transporter(data, ws) })
-      })
-
-      this.wss.on('close', () => {
-        console.info('Socket is closed accidentally.')
-        clearInterval(interval)
-        connect()
-      })
-    }
-    connect()
   }
 }
 

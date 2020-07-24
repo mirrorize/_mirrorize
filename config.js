@@ -27,7 +27,8 @@ var config = {
     list: [
       'clock',
       'core',
-      'compliment'
+      'compliment',
+      'feedreader'
     ]
   }
 }

@@ -1,3 +1,5 @@
+const Helper = require('./components.js').export()
+
 class ComponentClass {
   constructor (config = {}, elements = {}) {
     this.config = config
@@ -10,11 +12,7 @@ class ComponentClass {
 
   customElements () { return [] }
 
-  onClientReady (clientId) {
-    return new Promise((resolve) => {
-      resolve()
-    })
-  }
+  onClientReady (clientId) {}
 
   start () {
     return new Promise((resolve) => {
@@ -40,6 +38,20 @@ class ComponentClass {
   getHelper () {
     return this.helper
   }
+
+  onClientMessage (message) {
+    console.log(`Component ${this.id} is received message from client.`)
+    return 'SUCCESS'
+  }
+
+  sendMessageToClient (to, message) {
+    var from = {
+      _component: this.id
+    }
+    Helper.sendMessageToClient(from, to, message)
+  }
+
+  sendMessage () {}
 
   /* ? */
 

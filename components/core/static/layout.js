@@ -23,6 +23,12 @@ var layout = [
       target: '.foreground',
       area: '-3 / full / -2 / full'
     }
+  },
+  {
+    name: 'mz-feedreader',
+    position: {
+      target: '.leftBox'
+    }
   }
 ]
 

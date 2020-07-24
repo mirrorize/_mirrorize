@@ -4,13 +4,18 @@ class Client {
     this.ws = ws
   }
 
-  sendMessage (message, body) {
-    const payload = {
-      id: this.id,
-      message: message,
-      body: body
+  sendMessageToClient (from, to, msg) {
+    var message = {
+      message: {
+        key: 'TO_CLIENT',
+        payload: msg
+      },
+      _component: from._component,
+      _element: to._element,
+      _tagname: to._tagname,
+      _client: this.id
     }
-    this.ws.send(JSON.stringify(payload))
+    this.ws.send(JSON.stringify(message))
   }
 
   setWs (ws) {

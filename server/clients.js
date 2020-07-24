@@ -23,6 +23,28 @@ class _Clients {
       return (client.id === id)
     })
   }
+
+  sendMessageToClient (from, to, message) {
+    const { _client } = to
+    var client = this.findById(_client)
+    if (client) {
+      client.sendMessageToClient(from, to, message)
+    } else {
+      this.clients.forEach((client, i) => {
+        client.sendMessageToClient(from, to, message)
+      })
+    }
+  }
+
+  sendElementMessage (target, result) {
+    var { client, ...rest } = target
+    var c = this.findById(client)
+    if (c) {
+      c.sendElementMessage(rest, result)
+    } else {
+      console.warn(`Invalid client Id : ${client}`)
+    }
+  }
 }
 
 const Clients = new _Clients()

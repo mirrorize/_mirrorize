@@ -1,7 +1,7 @@
 
 var config = {
   'mz-compliment': {
-    refresh: 10 * 1000
+    refresh: 60 * 1000
   },
   component: {
     compliments: {

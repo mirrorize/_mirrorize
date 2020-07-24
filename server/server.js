@@ -26,57 +26,52 @@ class _Server {
       this.WebServer = require('./webserver.js')
       this.Commander = require('./commander.js')
       this.Clients = require('./clients.js')
+      this.WebSocket = require('./websocket.js')
 
       promises.push(this.WebServer.init(config.server.webserver))
+      promises.push(this.WebSocket.init(this.WebServer.server))
       promises.push(this.Components.init(config.components))
       promises.push(this.Commander.init(config.server.commander))
       promises.push(this.WebServer.bindComponent(this.Components.list()))
       promises.push(this.Commander.registerComponentCommand(
         this.Components.list()
       ))
-      promises.push(this.WebServer.start(this.socketHandler.bind(this)))
+      promises.push(this.WebServer.start())
+      promises.push(this.WebSocket.start(this.socketHandler.bind(this)))
       Promise.all(promises).then(resolve).catch(reject)
     })
   }
 
-  socketHandler (_obj, ws) {
-    const obj = JSON.parse(_obj)
-    if (obj.message === 'SOCKET_OPENED') {
-      var id = obj.id
-      var client = this.Clients.register(id, ws)
-      client.sendMessage('CLIENT_REGISTERED')
-      client.sendMessage(
-        'COMPONENTS_LOADED',
-        this.Components.listId()
-      )
-      client.sendMessage(
-        'LOAD_INJECTED_SCRIPTS',
-        this.Components.allInjects('script')
-      )
-      client.sendMessage(
-        'LOAD_INJECTED_STYLES',
-        this.Components.allInjects('style')
-      )
-      client.sendMessage(
-        'LOAD_INJECTED_MODULES',
-        this.Components.allInjects('module')
-      )
-      client.sendMessage(
-        'LOAD_CUSTOMELEMENTS',
-        this.Components.allCustomElements()
-      )
-    }
-    if (obj.message === 'CLIENT_PREPARED') {
-      const scenario = async () => {
-        await this.Components.start()
-        await this.Components.onClientReady(obj.id)
+  socketHandler (obj, ws) {
+    return new Promise((resolve, reject) => {
+      const { message, _client } = obj
+      switch (message.key) {
+        case 'TO_COMPONENT':
+          this.Components.messageToComponent(obj).then(resolve).catch(reject)
+          break
+        case 'SOCKET_OPENED':
+          var client = this.Clients.register(_client, ws)
+          if (client) {
+            this.Components.prepareClient().then(resolve).catch(reject)
+          } else {
+            reject(new Error('CLIENT_REGISTER_FAIL'))
+          }
+          break
+        case 'CLIENT_PREPARED':
+          this.Components.onClientReady(_client).then(resolve).catch(reject)
+          break
+        default:
+          reject(new Error('UNDEFINED_KEY'))
+          break
       }
-      scenario()
-    }
+    })
   }
 
   start () {
-    // console.log('started')
+    const scenario = async () => {
+      await this.Components.start()
+    }
+    scenario()
   }
 }
 

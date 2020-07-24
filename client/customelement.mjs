@@ -16,8 +16,8 @@ class CustomElement extends HTMLElement {
     })
 
     this.displayLock = new Set()
-
     this.config = MZ.getStorage(this.mzTagName, 'config')
+    this.bindTo = MZ.getStorage(this.mzTagName, 'originComponent')
     if (!this.config) this.config = {}
 
     this.init()
@@ -75,6 +75,7 @@ class CustomElement extends HTMLElement {
   connectedCallback () {
     this.setAttribute('uid', this.uid)
     this.setAttribute('tag_name', this.mzTagName)
+    this.setAttribute('customElement', '')
     // MZ.registerElement(this)
     this.render()
     this.onConnected()
@@ -118,6 +119,7 @@ class CustomElement extends HTMLElement {
     return (this.shadowRoot) ? this.shadowRoot : this
   }
 
+  /* is this used? */
   mergeConfig (config) {
     this.config = Object.assign({}, this.config, config)
   }
@@ -166,6 +168,29 @@ class CustomElement extends HTMLElement {
         resolve()
       }
     })
+  }
+
+  sendMessage (message, callback, bindTo = this.bindTo) {
+    var msg = {
+      message: message,
+      _element: this.uid,
+      _tagname: this.mzTagName,
+      _component: bindTo
+    }
+    var c = (typeof callback === 'function') ? callback.bind(this) : null
+    MZ.sendMessage(msg, c)
+  }
+
+  sendMessageToComponent (payload, callback, bindTo = this.bindTo) {
+    var msg = {
+      key: 'TO_COMPONENT',
+      payload: payload
+    }
+    this.sendMessage(msg, callback, bindTo)
+  }
+
+  onMessage (msg) {
+    console.log('>', msg)
   }
 
   /*

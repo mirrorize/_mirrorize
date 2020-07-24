@@ -4,6 +4,7 @@
   "description": "",
   "dependencies": {
     "express": "^4.17.1",
+    "feedparser": "^2.2.10",
     "get-google-fonts": "^1.2.2",
     "ws": "^7.3.0",
     "yargs": "^15.3.1"

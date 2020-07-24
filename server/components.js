@@ -1,4 +1,5 @@
 const path = require('path')
+const Clients = require('./clients.js')
 
 function _require (required) {
   try {
@@ -138,6 +139,7 @@ class _Components {
               name: e,
               path: path.join(component.dir, 'elements', file),
               url: component.url + '/elements/' + file,
+              origin: component.id,
               config: (component.elements[e]) ? component.elements[e] : null
             })
           } else {
@@ -250,13 +252,44 @@ class _Components {
     })
   }
 
+  prepareClient () {
+    return new Promise((resolve, reject) => {
+      try {
+        resolve({
+          listId: this.listId(),
+          scripts: this.allInjects('script'),
+          styles: this.allInjects('style'),
+          modules: this.allInjects('module'),
+          elements: this.allCustomElements()
+        })
+      } catch (e) {
+        reject(e)
+      }
+    })
+  }
+
+  messageToComponent (mObj) {
+    return new Promise((resolve, reject) => {
+      mObj.message = mObj.message.payload
+      var c = this.findById(mObj._component)
+      if (c) {
+        resolve(c.onClientMessage(mObj))
+      } else {
+        reject(new Error('Invalid Component'))
+      }
+    })
+  }
+
   export () {
     return {
       listComponents: () => { return this.list() },
       listComponentId: () => { return this.listId() },
       findComponentById: (id) => { return this.findById(id) },
-      broadcastMessage: (message) => {},
-      sendMessage: (targetModule, message) => {}
+      broadcastComponentMessage: (message) => {},
+      sendComponentMessage: (targetModule, message) => {},
+      sendMessageToClient: (from, to, message) => {
+        Clients.sendMessageToClient(from, to, message)
+      }
     }
   }
 }

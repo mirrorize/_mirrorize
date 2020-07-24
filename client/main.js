@@ -23,6 +23,7 @@ class _MZ {
         this.module = {}
         this.serverURL = serverURL
         this.isAlreadyConnected = false
+        this.isAlreadyPrepared = false
         this.storage = {}
         this.injectedScripts = null
         this.injectedStyles = null
@@ -33,6 +34,7 @@ class _MZ {
           '/_/main.css',
           '/_/custom.css'
         ]
+        this.messageSession = []
         this.start()
       }).catch((e) => {
         console.error('Invalid Client Configuration')
@@ -76,47 +78,66 @@ class _MZ {
       address: this.config.address,
       port: this.config.port
     }, this.messageHandler.bind(this))
-    this.socket.connect(this.reconnectCheck.bind(this))
+    this.socket.connect(this.firstOpened.bind(this), this.onSocketConnected.bind(this))
   }
 
-  reconnectCheck () {
+  onSocketConnected () {
+    if (this.isAlreadyPrepared) {
+      console.info('Socket is reconnected but initialization is finished so ignored.')
+      return false
+    }
+    this.sendMessage({
+      message: {
+        key: 'SOCKET_OPENED',
+        payload: this.wsURL
+      }
+    }, (msg) => {
+      if (msg._reply && msg.original.key === 'SOCKET_OPENED') {
+        (async () => {
+          // await this.createCSP(this.injectedScripts) /* reserved */
+          await this.injectModules(msg.message.modules)
+          await this.injectScripts(msg.message.scripts)
+          await this.loadCustomElements(msg.message.elements)
+          await this.injectStyles(this.styles)
+          await this.injectStyles(msg.message.styles)
+          this.sendMessage({
+            message: {
+              key: 'CLIENT_PREPARED'
+            }
+          }, () => {
+            this.isAlreadyPrepared = true
+          })
+        })()
+      }
+    })
+  }
+
+  firstOpened () {
     if (this.isAlreadyConnected) {
       window.location.reload()
-      return false
+      return true
     } else {
       this.isAlreadyConnected = true
-      return true
+      return false
     }
   }
 
   messageHandler (msg) {
-    if (msg.message === 'LOAD_INJECTED_SCRIPTS') {
-      this.injectedScripts = msg.body
-    }
-    if (msg.message === 'LOAD_INJECTED_STYLES') {
-      this.injectedStyles = msg.body
-    }
-    if (msg.message === 'LOAD_INJECTED_MODULES') {
-      this.injectedModules = msg.body
-    }
-    if (msg.message === 'LOAD_CUSTOMELEMENTS') {
-      this.customElements = msg.body
-    }
-    if (
-      this.serverURL && this.injectedStyles &&
-      this.injectedScripts && this.injectedModules &&
-      this.customElements && !this.isAlreadyPrepared
-    ) {
-      const job = async () => {
-        // await this.createCSP(this.injectedScripts) /* reserved */
-        await this.injectModules(this.injectedModules)
-        await this.injectScripts(this.injectedScripts)
-        await this.loadCustomElements(this.customElements)
-        await this.injectStyles(this.styles)
-        await this.injectStyles(this.injectedStyles)
-        this.socket.sendMessage('CLIENT_PREPARED')
+    const { message, _element = null, _tagname = null, _MZ = null } = msg
+    const { key, payload = null } = message
+    if (key === 'TO_CLIENT') {
+      var ces = [...document.querySelectorAll('[customElement]')]
+      var targets = []
+      if (_MZ) {
+        // for mirrorize client itself... will it be needed???
+      } else if (_element) {
+        targets = ces.filter((ce) => { return _element === ce.uid })
+      } else if (_tagname) {
+        targets = ces.filter((ce) => { return _tagname === ce.mzTagName })
       }
-      job()
+      targets.forEach((target, i) => {
+        if (typeof target.onMessage === 'function') target.onMessage(payload)
+      })
     }
   }
 
@@ -244,10 +265,11 @@ class _MZ {
   }
 
   loadCustomElements (elements) {
-    const loadElement = (name, url, config) => {
+    const loadElement = (name, url, config, origin) => {
       return new Promise((resolve, reject) => {
         import(url).then((module) => {
           this.setStorage(name, 'config', config)
+          this.setStorage(name, 'originComponent', origin)
           window.customElements.define(name, module.default)
           console.info('CustomElement loaded:', name, url)
           resolve()
@@ -262,8 +284,8 @@ class _MZ {
       try {
         if (!elements || !Array.isArray(elements) || elements.length < 1) resolve()
         var promises = []
-        for (const { name, url, config } of elements) {
-          promises.push(loadElement(name, url, config))
+        for (const { name, url, config, origin } of elements) {
+          promises.push(loadElement(name, url, config, origin))
         }
         Promise.allSettled(promises).then(() => {
           console.info('All customElements are loaded.')
@@ -276,6 +298,7 @@ class _MZ {
     })
   }
 
+  /* ???? */
   registerElement (el) {
     this.connectedElements[el.uid] = el.mzTagName
   }
@@ -284,11 +307,21 @@ class _MZ {
     this.connectedElements[el.uid] = null
     delete this.connectedElements[el.uid]
   }
+
+  sendMessage (message, callback) {
+    this.socket.sendMessage(message, callback)
+  }
+
+  getClientId () {
+    return this.config.id
+  }
 }
 
 const mz = new _MZ()
 window.MZ = {
   getStorage: mz.getStorage.bind(mz),
-  setStorage: mz.setStorage.bind(mz)
+  setStorage: mz.setStorage.bind(mz),
+  sendMessage: mz.sendMessage.bind(mz),
+  getClientId: mz.getClientId.bind(mz)
 }
 export default mz

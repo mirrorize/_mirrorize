@@ -24,13 +24,6 @@ class CustomElement extends HTMLElement {
 
     if (this.isShadow) {
       this.attachShadow({ mode: 'open' })
-      var tmpl = this.getTemplate()
-      if (tmpl && tmpl.trim()) {
-        var dom = this.getDOM()
-        const template = document.createElement('template')
-        template.innerHTML = tmpl
-        dom.appendChild(template.content.cloneNode(true))
-      }
     }
     this.onConstructed()
   }
@@ -41,7 +34,7 @@ class CustomElement extends HTMLElement {
   onConstructed () {}
 
   get isShadow () {
-    return true
+    return false
   }
 
   get hidable () {
@@ -73,6 +66,13 @@ class CustomElement extends HTMLElement {
   onAttributeChanged (name, oldValue, newValue) {}
 
   connectedCallback () {
+    var tmpl = this.getTemplate()
+    if (tmpl && tmpl.trim()) {
+      var dom = this.getDOM()
+      const template = document.createElement('template')
+      template.innerHTML = tmpl
+      dom.appendChild(template.content.cloneNode(true))
+    }
     this.setAttribute('uid', this.uid)
     this.setAttribute('tag_name', this.mzTagName)
     this.setAttribute('customElement', '')

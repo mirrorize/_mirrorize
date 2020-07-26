@@ -1,9 +1,10 @@
 const { ComponentClass } = require('../../server/component-helper.js')
 
-class Core extends ComponentClass {
+module.exports = class extends ComponentClass {
   customElements () {
     return [
       'mz-layout',
+      'mz-layout-holder',
       'mz-notify',
       'mz-notify-item'
     ]
@@ -21,5 +22,3 @@ class Core extends ComponentClass {
     ]
   }
 }
-
-module.exports = Core

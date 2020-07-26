@@ -26,7 +26,7 @@ try {
 var Server = require('./server.js')
 Server.init(Config)
   .then(() => {
-    // Server.start()
+    Server.start()
   })
   .catch((r) => {
     _e(r, () => {

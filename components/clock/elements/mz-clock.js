@@ -105,7 +105,7 @@ export default class extends CustomElement {
         this.style.setProperty('font-size', size + 'px')
       }
       this.refreshTimer()
-    }, 1000)
+    }, 500)
   }
 
   get isShadow () {

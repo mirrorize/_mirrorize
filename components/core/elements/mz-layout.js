@@ -17,9 +17,10 @@ export default class extends CustomElement {
       import(this.config.elementLayout).then(({ default: elements }) => {
         for (const el of elements) {
           if (!el.name) continue
+          if (!window.customElements.get(el.name)) continue
+
           var cfg = window.MZ.getStorage(el.name, 'config')
           var mergedCfg = Object.assign({}, cfg, el.config)
-          // window.MZ.setStorage(el.name, 'config', mergedCfg)
           var elem = document.createElement(el.name)
           elem.config = Object.assign({}, elem.config, mergedCfg)
           if (el.id) elem.setAttribute('id', el.id)

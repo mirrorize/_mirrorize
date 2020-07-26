@@ -7,14 +7,14 @@ var layout = [
       timezone: 'Asia/Tokyo'
     },
     position: {
-      target: '.foreground'
+      target: '#bottom_right'
     }
   },
   {
     name: 'mz-clock',
     id: 'test2',
     position: {
-      target: '.leftBox'
+      target: '#bottom_right'
     }
   },
   {
@@ -27,7 +27,7 @@ var layout = [
   {
     name: 'mz-feedreader',
     position: {
-      target: '.leftBox'
+      target: '#bottom_right'
     }
   }
 ]

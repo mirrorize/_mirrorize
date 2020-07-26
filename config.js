@@ -9,7 +9,7 @@ var config = {
       certificate: './server.crt',
       useSecure: false, // For 'https', set it as `true`
       // address: 'localhost', // or your domain/ip /* no need */
-      port: '8080', // Your port
+      port: '8081', // Your port
       expressExtraSetup: (expressApp) => {} // If you need additional setup of express.js. For example proxy setup.
       // expressExtraSetup: (app) => { app.set('trust proxy', 'loopback, 123.123.123.123') }
     }
@@ -25,9 +25,9 @@ var config = {
 
   components: {
     list: [
-      'clock',
       'core',
-      'compliment',
+//      'clock',
+//      'compliment',
       'feedreader'
     ]
   }

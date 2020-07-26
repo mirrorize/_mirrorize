@@ -124,6 +124,7 @@ class _MZ {
 
   messageHandler (msg) {
     const { message, _element = null, _tagname = null, _MZ = null } = msg
+    if (!message) return
     const { key, payload = null } = message
     if (key === 'TO_CLIENT') {
       var ces = [...document.querySelectorAll('[customElement]')]

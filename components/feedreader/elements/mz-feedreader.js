@@ -10,15 +10,34 @@ const template = `
 
 #self {
   text-align:center;
+  width: 100%;
 }
+
+.summary {
+  color: gray;
+  font-size: 0.35em;
+}
+
+.title {
+  color: white;
+  font-size: 0.5em;
+  font-weight: bold;
+}
+
+
 
 </style>
 <div id="self" part="content">
-  <div class="title" part="title"></div>
+  <div class="title" part="title" data-bind="title"></div>
+  <div class="summary" part="summary" data-bind="summary" data-truncate="400" data-escapehtml="true"></div>
 </div>
 `
 
 export default class extends CustomElement {
+  init () {
+    this.items = []
+  }
+
   get isSahdow () {
     return true
   }
@@ -28,7 +47,7 @@ export default class extends CustomElement {
   }
 
   static observableAttributes () {
-    return ['refresh']
+    return ['duration']
   }
 
   onAttributeChanged (name, oldValue, newValue) {
@@ -48,30 +67,73 @@ export default class extends CustomElement {
     this.work()
   }
 
-  _test (ret) {
-    // console.log('@@@', ret)
+  requestFeeds () {
+    var source = (this.source)
+      ? this.source
+      : ((this.config.source) ? this.config.source : null)
+    var msg = {
+      key: 'REQUEST_ITEM'
+    }
+    if (source) msg.source = source
+    this.sendMessageToComponent(msg, (ret) => {
+      this.items = ret.message
+      this.work()
+    })
   }
 
   work () {
+    console.log(this.config)
+    const escapeHtml = (unsafe) => {
+      return unsafe.replace(/<[^>]*>?/gm, ' ').replace('Continue reading...', '')
+    }
     clearTimeout(this.timer)
-    this.sendMessageToComponent('REQUEST', (ret) => {
-      this._test(ret)
+    var duration = (this.getAttribute('duration'))
+      ? this.getAttribute('duration')
+      : (
+        (this.duration)
+          ? this.duration
+          : (
+            (this.config.duration)
+              ? this.config.duration
+              : 5000
+          )
+      )
+    if (this.items.length <= 0) {
+      this.requestFeeds()
+      return
+    }
+    this.hide().then(() => {
+      var item = this.items.shift()
+      var targets = this.getDOM().querySelectorAll('[data-bind]')
+      var ts = [...targets]
+      for (const t of ts) {
+        const bind = t.dataset.bind
+        if (item[bind]) {
+          var content = (t.dataset.escapehtml === 'true') ? escapeHtml(item[bind]) : item[bind]
+          var truncate = (t.dataset.truncate)
+            ? t.dataset.truncate
+            : (
+              (this.truncate)
+                ? this.truncate
+                : (
+                  (this.config.truncate)
+                    ? this.config.truncate
+                    : 0
+                )
+            )
+          if (truncate > 0) {
+            if (content.length > truncate) {
+              content = content.substring(0, truncate) + '...'
+            }
+          }
+          t.innerHTML = content
+        }
+      }
+      this.show()
     })
-    /*
-    console.log('send?')
-    MZ.sendMessage('TEST', {
-      foo: 'bar',
-      refresh: this.refresh,
-      uid: this.uid
-    })
-    this.sendMessage('TEST', {
-      foo: 'bar',
-      refresh: this.refresh,
-      uid: this.uid
-    }, this._test)
-    setTimeout(() => {
+    this.timer = setTimeout(() => {
+      console.log('duration', duration)
       this.work()
-    }, this.refresh)
-    */
+    }, duration)
   }
 }

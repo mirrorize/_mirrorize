@@ -1,7 +1,7 @@
 const { ComponentClass, ComponentHelper } = require('../../server/component-helper.js')
 const moment = require('moment')
 
-class Clock extends ComponentClass {
+module.exports = class extends ComponentClass {
   customElements () {
     return [
       'mz-clock',
@@ -47,5 +47,3 @@ class Clock extends ComponentClass {
     }
   }
 }
-
-module.exports = Clock

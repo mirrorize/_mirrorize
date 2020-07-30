@@ -1,4 +1,5 @@
 const express = require('express')
+const session = require('express-session')
 const http = require('http')
 const https = require('https')
 const fs = require('fs')
@@ -9,7 +10,17 @@ class _WebServer {
     return new Promise((resolve, reject) => {
       try {
         this.config = _config
+        this.defaultClient = _config.defaultClient || 'default'
         this.express = express()
+        this.express.use(session({
+          secret: 'jbydhgsidslvxlbamgaj8jexnfltxnfieajgwuu8dkvjduufajcrjthf2uf',
+          resave: false,
+          saveUninitialized: true,
+          cookie: {
+            sameSite: 'none',
+            secure: true
+          }
+        }))
         this.port = (_config.port) ? _config.port : '8080'
         this.address = (_config.address) ? _config.address : '127.0.0.1'
         this.protocol = (_config.useSecure) ? 'https' : 'http'
@@ -68,32 +79,35 @@ class _WebServer {
     return new Promise((resolve, reject) => {
       try {
         this.express.get('/', (req, res) => {
+          var client = req.query.client || this.defaultClient
+          req.session.key = client
           res.sendFile(path.join(__dirname, '..', 'client', 'index.html'))
         })
-        this.express.use(
-          '/_',
-          express.static(path.join(__dirname, '..', 'client'))
-        )
-        this.express.use(
-          '/_/config/:config', (req, res) => {
-            var config = (req.params.config) ? req.params.config : 'config'
-            var configPath = config + '.js'
-            var filePath = path.join(__dirname, '..', configPath)
-            try {
-              var content = fs.readFileSync(filePath) + '\nexport default config'
-              res.type('.mjs')
-              res.send(Buffer.from(content))
-            } catch (e) {
-              res.status(404).end()
-            }
+        this.express.use('/_', express.static(path.join(__dirname, '..', 'client')))
+        this.express.get('/MAIN', (req, res) => {
+          res.type('.mjs').sendFile(path.join(__dirname, '..', 'client', 'main.js'))
+        })
+        this.express.use('/_client', (req, res, next) => {
+          if (req.method !== 'GET') {
+            next()
+            return
           }
-        )
+          var client = req.session.key || this.defaultClient
+          var fPath = path.join(__dirname, '..', 'client', 'clients', client, req.path)
+          var ext = fPath.split('.').pop()
+          var stat = (fs.existsSync(fPath)) ? fs.lstatSync(fPath) : null
+          if (stat && stat.isFile()) {
+            res.type('.' + ext).sendFile(fPath)
+          } else {
+            res.status(404).send()
+          }
+        })
         this.express.use(
           '/3rdparty',
           express.static(path.join(__dirname, '..', '3rdparty'))
         )
         this.server.listen(this.port, () => {
-          console.info('WebServer is started.')
+          console.info('WebServer is started with port:', this.port)
           resolve()
         })
       } catch (e) {

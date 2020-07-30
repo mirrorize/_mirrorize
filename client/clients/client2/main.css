@@ -1,0 +1,20 @@
+html {}
+
+body {
+  padding: 10px;
+  height: calc(100vh - 20px);
+  width: calc(100vw - 20px);
+  box-sizing: border-box;
+  position: absolute;
+  background-color: #000;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  overflow: hidden;
+  color: #999;
+}
+
+#oops {
+  background-color: #909;
+}

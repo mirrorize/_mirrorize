@@ -3,8 +3,6 @@ const { ComponentClass } = require('../../server/component-helper.js')
 module.exports = class extends ComponentClass {
   customElements () {
     return [
-      'mz-layout',
-      'mz-layout-holder',
       'mz-notify',
       'mz-notify-item'
     ]
@@ -16,9 +14,19 @@ module.exports = class extends ComponentClass {
     ]
   }
 
+  injectScripts () {
+    return [
+      '/3rdparty/moment.js',
+      '/3rdparty/moment-timezone.js'
+    ]
+  }
+
   injectStyles () {
     return [
       '/core/static/core.css'
     ]
+  }
+
+  onLoaded () {
   }
 }

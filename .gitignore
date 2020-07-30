@@ -2,7 +2,6 @@
 3rdparty/*
 !3rdparty/install.sh
 
-
 # SSL
 *.key
 *.pem

@@ -2,6 +2,9 @@ class Client {
   constructor (id, ws = null) {
     this.id = id
     this.ws = ws
+    this.ws.on('close', () => {
+      console.info(`Client '${this.id}' is closed.`)
+    })
   }
 
   sendMessageToClient (from, to, msg) {

@@ -13,9 +13,7 @@ const _e = (error, callback = () => {}) => {
 
 var Config = {}
 try {
-  const c = require(configPath)
-  Config.server = c.server
-  Config.components = c.components
+  Config = require(configPath)
 } catch (e) {
   _e(e, () => {
     console.error('Fail to load configuration:', configPath)

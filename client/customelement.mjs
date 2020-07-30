@@ -1,5 +1,7 @@
-/* global HTMLElement, MZ */
-
+/* global HTMLElement, MZ, customElements, CSSStyleSheet */
+const defTemplate = `
+<div mces id="contentDom"></div>
+`
 var uids = 1
 class CustomElement extends HTMLElement {
   // static uids = 1
@@ -14,22 +16,74 @@ class CustomElement extends HTMLElement {
       value: this.tagName.toLowerCase(),
       writable: false
     })
+    customElements.whenDefined(this.mzTagName).then(() => {
+      this._definedCallback()
+    })
 
     this.displayLock = new Set()
-    this.config = MZ.getStorage(this.mzTagName, 'config')
-    this.bindTo = MZ.getStorage(this.mzTagName, 'originComponent')
-    if (!this.config) this.config = {}
-
-    this.init()
-
+    const temp = document.createElement('template')
+    temp.innerHTML = defTemplate.trim()
+    var self = temp.content.cloneNode(true)
+    var cd = null
     if (this.isShadow) {
       this.attachShadow({ mode: 'open' })
+      this.shadowRoot.appendChild(self)
+      cd = this.shadowRoot.querySelector('[mces]')
+    } else {
+      this.appendChild(self)
+      cd = this.querySelector('[mces]')
     }
+    cd.setAttribute('mces', this.uid)
+
+    if (this.ishidable) {}
+
+    Object.defineProperty(this, 'isConstructed', {
+      value: true,
+      writable: false
+    })
+    if (window.MZ.isMZReady()) this._MZReady()
     this.onConstructed()
+  }
+
+  get contentDom () {
+    var id = `[mces="${this.uid}"]`
+    return (this.isShadow) ? this.shadowRoot.querySelector(id) : this.querySelector(id)
   }
 
   /* Implement in Child */
   init () {}
+
+  _definedCallback () {
+    Object.defineProperty(this, 'isDefined', {
+      value: true,
+      writable: false
+    })
+    this.onDefined()
+    this._ready()
+  }
+
+  onDefined () {
+    this.bindTo = MZ.getCustomElementOrigin(this.mzTagName)
+  }
+
+  _MZReady () { // Check whether is already MZ ready before constructed or connected.
+    if (this.isMZReady) return
+    Object.defineProperty(this, 'isMZReady', {
+      value: true,
+      writable: false
+    })
+    this._ready()
+  }
+
+  _ready () {
+    if (this.isDefined && this.isConnected && this.isMZReady && !this.isReady) {
+      Object.defineProperty(this, 'isReady', {
+        value: true,
+        writable: false
+      })
+      this.onReady()
+    }
+  }
 
   onConstructed () {}
 
@@ -49,16 +103,10 @@ class CustomElement extends HTMLElement {
 
   /* Implement in Child */
   static observableAttributes () {
-    return ['disabled', 'hidden']
+    return []
   }
 
   attributeChangedCallback (name, oldValue, newValue) {
-    /*
-    if (oldValue !== newValue) {
-      if (name == 'disabled') {}
-      if (name == 'hidden') {}
-    }
-    */
     this.onAttributeChanged(name, oldValue, newValue)
   }
 
@@ -66,28 +114,23 @@ class CustomElement extends HTMLElement {
   onAttributeChanged (name, oldValue, newValue) {}
 
   connectedCallback () {
-    var tmpl = this.getTemplate()
-    if (tmpl && tmpl.trim()) {
-      var dom = this.getDOM()
-      const template = document.createElement('template')
-      template.innerHTML = tmpl
-      dom.appendChild(template.content.cloneNode(true))
-    }
     this.setAttribute('uid', this.uid)
-    this.setAttribute('tag_name', this.mzTagName)
-    this.setAttribute('customElement', '')
-    // MZ.registerElement(this)
-    this.render()
+    this.setAttribute('tagname', this.mzTagName)
+    this.setAttribute('mzcustomelement', '')
     this.onConnected()
-    this._beforeHiddenDisplayState = window.getComputedStyle(this, null).getPropertyValue('display')
-    // this.start()
+    this._previousDispType = this._getCurrentStyle().getPropertyValue('display')
+    if (window.MZ.isMZReady()) this._MZReady()
+    this._ready()
+  }
+
+  onReady () {
+    console.log(`${this.mzTagName} is ready.`)
   }
 
   /* Implement in Child */
   onConnected () {}
 
   disconnectedCallback () {
-    // MZ.unregisterElement(this)
     this.onDisconnected()
   }
 
@@ -95,51 +138,43 @@ class CustomElement extends HTMLElement {
   onDisconnected () {}
 
   /* Implement in Child */
-  updateDOM (dom) {}
-
-  render () {
-    this.updateDOM(this.getDOM())
+  _getCurrentStyle () {
+    return window.getComputedStyle(this)
   }
 
-  getTemplate () {
-    /* Should implement */
-    return null
-  }
-
-  getStyle () {
-    /* Should implement */
-    return null
-  }
-
-  getStylesheet () {
-    return null
-  }
-
-  getDOM () {
-    return (this.shadowRoot) ? this.shadowRoot : this
-  }
-
-  /* is this used? */
-  mergeConfig (config) {
-    this.config = Object.assign({}, this.config, config)
-  }
-
-  show (lock = null) {
+  show (lock = null, option = {}) {
+    var {
+      animation = {
+        opacity: [0, 1]
+      },
+      duration = 1000
+    } = option
+    var cs = this._getCurrentStyle()
     return new Promise((resolve, reject) => {
-      if (!this.hidable) resolve(this.hidable)
+      if (!this.hidable) {
+        resolve(this.hidable)
+        return
+      }
       this.displayLock.delete(lock)
       if (this.displayLock.size === 0) {
-        if (this.style.display === 'none') {
-          this.dataset.status = 'show'
-          this.style.opacity = 0
-          this.style.display = this._beforeHiddenDisplayState
-          this.style.transition = 'opacity 1s ease-in-out'
-          this.style.opacity = 1
-          this.ontransitionend = () => {
-            this.style.removeProperty('transition')
-            this.style.removeProperty('opacity')
+        if (cs.getPropertyValue('display') === 'none') {
+          this.style.display = this._previousDispType
+          var ani = this.contentDom.animate(animation, duration)
+          ani.onfinish = () => {
             resolve()
           }
+          /*
+          const showend = () => {
+            this.contentDom.removeEventListener('animationend', showend)
+            this.style.opacity = 1
+            resolve()
+          }
+          this.contentDom.addEventListener('animationend', showend)
+          this.contentDom.style.animationDuration = duration + 'ms'
+          this.contentDom.style.animationName = 'fadeIn'
+          this.style.opacity = 0
+          this.style.display = this._previousDispType
+          */
         } else {
           resolve()
         }
@@ -149,21 +184,38 @@ class CustomElement extends HTMLElement {
     })
   }
 
-  hide (lock = null) {
+  hide (lock = null, option = {}) {
+    var {
+      animation = {
+        opacity: [1, 0]
+      },
+      duration = 1000
+    } = option
+    var cs = this._getCurrentStyle()
     return new Promise((resolve, reject) => {
-      if (!this.hidable) resolve(this.hidable)
+      if (!this.hidable) {
+        resolve(this.hidable)
+        return
+      }
       if (lock) this.displayLock.add(lock)
-      if (this.style.display !== 'none') {
-        this.dataset.status = 'hide'
-        this._beforeHiddenDisplayState = window.getComputedStyle(this, null).getPropertyValue('display')
-        this.style.transition = 'opacity 1s ease-in-out'
-        this.style.opacity = 0
-        this.ontransitionend = () => {
+      if (cs.getPropertyValue('display') !== 'none') {
+        this._previousDispType = cs.getPropertyValue('display')
+        this.style.display = this._previousDispType
+        var ani = this.contentDom.animate(animation, duration)
+        ani.onfinish = () => {
           this.style.display = 'none'
-          this.style.removeProperty('transition')
-          this.style.removeProperty('opacity')
           resolve()
         }
+        /*
+        const hideend = () => {
+          this.contentDom.removeEventListener('animationend', hideend)
+          this.style.display = 'none'
+          resolve()
+        }
+        this.contentDom.addEventListener('animationend', hideend)
+        this.contentDom.style.animationDuration = duration + 'ms'
+        this.contentDom.style.animationName = 'fadeOut'
+        */
       } else {
         resolve()
       }

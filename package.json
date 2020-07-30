@@ -3,7 +3,10 @@
   "version": "0.0.1",
   "description": "",
   "dependencies": {
+    "cookie-parser": "^1.4.5",
     "express": "^4.17.1",
+    "express-dynamic-static": "^1.0.5",
+    "express-session": "^1.17.1",
     "feedparser": "^2.2.10",
     "get-google-fonts": "^1.2.2",
     "node-fetch": "^2.6.0",

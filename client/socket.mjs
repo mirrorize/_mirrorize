@@ -34,7 +34,7 @@ class Socket {
         console.warn('Socket is not connected.:', this.wsURL)
 
         for (const [key, value] of this.session) {
-          value(false)
+          if (typeof value === 'function') value(false)
           this.session.delete(key)
         }
         this.session.clear()
@@ -61,10 +61,14 @@ class Socket {
         var message = JSON.parse(event.data)
         if (message._client !== this.id) return
         if (message._session && message._reply) {
-          var { callback, original } = this.session.get(message._session)
-          if (typeof callback === 'function') {
-            callback(message, original)
+          var r = this.session.get(message._session)
+          if (r) {
+            var { callback = null, original } = r
+            if (typeof callback === 'function') {
+              callback(message, original)
+            }
           }
+
           this.session.delete(message._session)
         }
         this.handler(message)

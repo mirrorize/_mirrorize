@@ -17,7 +17,7 @@ const template = `
 `
 
 export default class extends CustomElement {
-  get isSahdow () {
+  get isShadow () {
     return true
   }
 
@@ -41,7 +41,6 @@ export default class extends CustomElement {
   }
 
   onConnected () {
-    console.log('cmp-onconnected?')
     this.src = (this.config.src) ? this.config.src : '/compliment'
     this.refresh = (this.config.refresh) ? this.config.refresh : 1000 * 60
     this.timer = null

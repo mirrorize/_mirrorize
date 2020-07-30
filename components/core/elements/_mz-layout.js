@@ -11,14 +11,21 @@ export default class extends CustomElement {
       : '<div class="grid main layer layout>"'
   }
 
-  onConnected () {
+  onActivated () {
     this.innerHTML = this.config.template.trim()
     if (this.config.elementLayout) {
       import(this.config.elementLayout).then(({ default: elements }) => {
         for (const el of elements) {
-          if (!el.name) continue
-          if (!window.customElements.get(el.name)) continue
-
+          console.log(el.name, 'layout putting')
+          if (!el.name) {
+            console.log('no el.name', el.name)
+            continue
+          }
+          if (!window.customElements.get(el.name)) {
+            console.log('no registry', el.name, window.customElements.get(el.name))
+            continue
+          }
+          console.log(el.name, 'continue')
           var cfg = window.MZ.getStorage(el.name, 'config')
           var mergedCfg = Object.assign({}, cfg, el.config)
           var elem = document.createElement(el.name)

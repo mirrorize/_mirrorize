@@ -12,8 +12,8 @@ const template = `
 
 .notify .container {
   position: absolute;
-  height: 50%;
-  width:50%;
+  height: 100%;
+  width:100%;
   display:none;
   flex-direction: column;
   align-items: flex-start;
@@ -60,10 +60,10 @@ export default class extends CustomElement {
       console.error('This module should not be instanced multiply.')
     }
     singleton = true
-    var defaults = window.MZ.getStorage('mz-notify', 'config')
-    this.timer = (defaults.timer) ? defaults.timer : 5000
-    this.type = (defaults.type) ? defaults.type : 'log'
-    this.position = (defaults.position) ? defaults.position : 'top left'
+    //var defaults = window.MZ.getStorage('mz-notify', 'config')
+    //this.timer = (defaults.timer) ? defaults.timer : 5000
+    //this.type = (defaults.type) ? defaults.type : 'log'
+    //this.position = (defaults.position) ? defaults.position : 'top left'
   }
 
   getTemplate () {

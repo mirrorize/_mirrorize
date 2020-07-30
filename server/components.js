@@ -1,4 +1,5 @@
 const path = require('path')
+const fs = require('fs')
 const Clients = require('./clients.js')
 
 function _require (required) {
@@ -6,7 +7,8 @@ function _require (required) {
     var r = require(required)
     return r
   } catch (e) {
-    return e
+    console.warn(`${required} doesn't exist.`)
+    return null
   }
 }
 
@@ -14,75 +16,108 @@ class _Components {
   init (_config = {}) {
     this.components = []
     this.config = _config
+    this.clientPrepares = null
     return new Promise((resolve, reject) => {
-      if (
-        !Object.prototype.hasOwnProperty.call(_config, 'list') ||
-        !Array.isArray(_config.list) ||
-        _config.list.length < 1
-      ) {
-        console.warn('There is no list of components to execute. This would not be the error but need to check your configuration.')
-        resolve()
+      (async () => {
+        var list = await this.scanComponents()
+        if (!Array.isArray(list) || list.length <= 0) {
+          console.warn('There is no component to load. This would not be the error but need to confirm.')
+          resolve()
+        }
+        const promises = []
+        for (const name of list) {
+          promises.push(this.loadComponent(name))
+        }
+        Promise.allSettled(promises).then((result) => {
+          resolve()
+        })
+      })()
+    })
+  }
+
+  loadComponent (name) {
+    return new Promise((resolve, reject) => {
+      const dir = path.join(__dirname, '..', 'components', name)
+      const cPath = path.join(dir, 'index.js')
+      const configPath = path.join(dir, 'config.js')
+      var config = _require(configPath)
+      if (!config) {
+        console.warn('Invalid config:', name)
+        console.warn(`Component:${name} will be instanced without configuration.`)
+        config = {}
       }
 
-      this.config.list = [...new Set(_config.list)]
-      for (const name of this.config.list) {
-        const dir = path.join(__dirname, '..', 'components', name)
-        const cPath = path.join(dir, 'index.js')
-        const configPath = path.join(dir, 'config.js')
-        var config = _require(configPath)
-        if (config instanceof Error) {
-          console.warn('Invalid config:', name)
-          console.warn(`Component:${name} will be instanced without configuration.`)
-          config = {}
-        }
-        var Klass = _require(cPath)
-        if (Klass instanceof Error) {
-          console.warn('Fails to find component:', name)
-          console.warn(Klass)
-          console.warn(`Component:${name} will not be loaded.`)
-          continue
-        }
-        const { component: compConfig = {}, ...elements } = config
-        var component = new Klass(compConfig, elements)
-        if (component instanceof Error) {
-          console.warn('Fails to load component:', name)
-          console.warn(config.message)
-          console.info(`Component ${name} will not be loaded.`)
-        } else {
-          var id
-          if (config.id && !this.findById(config.id)) {
-            id = config.id
-          } else {
-            let i = 2
-            id = name
-            while (this.findById(id)) {
-              id = name + i++
-            }
-          }
-          Object.defineProperty(component, 'id', {
-            value: id,
-            writable: false
-          })
-          Object.defineProperty(component, 'name', {
-            value: name,
-            writable: false
-          })
-          Object.defineProperty(component, 'dir', {
-            value: dir,
-            writable: false
-          })
-          Object.defineProperty(component, 'url', {
-            value: '/' + name,
-            writable: false
-          })
-          component.onConstructed()
-          console.info(`Component '${name}' is constructed. (id:${id})`)
-          this.components.push(component)
-          component.onLoaded()
-          console.info(`Component '${name}' is loaded. (id:${id})`)
-        }
+      if (config.disabled) {
+        console.info(`Component '${name}' will not be loaded because 'disabled' is set.`)
+        reject(new Error('disabled:true'))
+        return
       }
-      resolve()
+
+      var Klass = _require(cPath)
+      if (!Klass) {
+        console.warn('Fails to find component:', name)
+        console.warn(Klass)
+        console.warn(`Component:${name} will not be loaded.`)
+        reject(Klass)
+        return
+      }
+      var component = new Klass(config)
+      if (component instanceof Error) {
+        console.warn('Fails to load component:', name)
+        console.warn(component.message)
+        console.info(`Component ${name} will not be loaded.`)
+        reject(component)
+      } else {
+        var id
+        if (config.id && !this.findById(config.id)) {
+          id = config.id
+        } else {
+          let i = 2
+          id = name
+          while (this.findById(id)) {
+            id = name + i++
+          }
+        }
+        Object.defineProperty(component, 'id', {
+          value: id,
+          writable: false
+        })
+        Object.defineProperty(component, 'name', {
+          value: name,
+          writable: false
+        })
+        Object.defineProperty(component, 'dir', {
+          value: dir,
+          writable: false
+        })
+        Object.defineProperty(component, 'url', {
+          value: '/' + name,
+          writable: false
+        })
+        component.onConstructed()
+        console.info(`Component '${name}' is constructed. (id:${id})`)
+        this.components.push(component)
+        component.onLoaded()
+        console.info(`Component '${name}' is loaded. (id:${id})`)
+        resolve()
+      }
+    })
+  }
+
+  scanComponents () {
+    return new Promise((resolve, reject) => {
+      var cPath = path.join(__dirname, '..', 'components')
+      var r = fs.readdirSync(cPath, { withFileTypes: true })
+        .filter((dirent) => {
+          return dirent.isDirectory()
+        })
+        .map((dirent) => {
+          return dirent.name
+        })
+        .filter((name) => {
+          return /^[a-z0-9]/i.test(name)
+        })
+      resolve(r)
     })
   }
 
@@ -128,13 +163,12 @@ class _Components {
   allCustomElements () {
     var ce = []
     for (var component of this.components) {
-      var cce = component.customElements()
-      if (cce && Array.isArray(cce) && cce.length > 0) {
-        for (var e of cce) {
+      this.scanCustomElement(component).then((r) => {
+        for (const file of r) {
+          const e = file.substring(0, file.length - 3)
           if (!ce.find((item) => {
             return (item.name === e)
           })) {
-            var file = e + '.js'
             ce.push({
               name: e,
               path: path.join(component.dir, 'elements', file),
@@ -146,87 +180,53 @@ class _Components {
             console.warn(`Custom Element '${component.id}.${e}' seems duplicated. It will be ignored.'`)
           }
         }
-      }
+      })
     }
     return ce
   }
 
-  allInjectScripts () {
-    var is = []
-    for (var component of this.components) {
-      var cis = component.injectScripts()
-      if (cis && Array.isArray(cis) && cis.length > 0) {
-        for (var s of cis) {
-          if (!is.find((item) => {
-            return (item === s)
-          })) {
-            is.push(s)
-          } else {
-            console.warn(`Script to inject '${s}' of '${component.id}' seems duplicated. It will be ignored.'`)
-          }
-        }
-      }
-    }
-    return is
-  }
-
-  allInjectStyles () {
-    var is = []
-    for (var component of this.components) {
-      var cis = component.injectStyles()
-      if (cis && Array.isArray(cis) && cis.length > 0) {
-        for (var s of cis) {
-          if (!is.find((item) => {
-            return (item === s)
-          })) {
-            is.push(s)
-          } else {
-            console.warn(`Styles to inject '${s}' of '${component.id}' seems duplicated. It will be ignored.'`)
-          }
-        }
-      }
-    }
-    return is
-  }
-
-  allInjectModuleScripts () {
-    var is = []
-    for (var component of this.components) {
-      var cis = component.injectModuleScripts()
-      if (cis && Array.isArray(cis) && cis.length > 0) {
-        for (var s of cis) {
-          if (!is.find((item) => {
-            return (item === s)
-          })) {
-            is.push(s)
-          } else {
-            console.warn(`Module script to inject '${s}' of '${component.id}' seems duplicated. It will be ignored.'`)
-          }
-        }
-      }
-    }
-    return is
+  scanCustomElement (component) {
+    return new Promise((resolve, reject) => {
+      var cPath = path.join(component.dir, 'elements')
+      var r = fs.readdirSync(cPath, { withFileTypes: true })
+        .filter((dirent) => {
+          return dirent.isFile()
+        })
+        .map((dirent) => {
+          return dirent.name
+        })
+        .filter((name) => {
+          return /^mz-[0-9a-zA-Z-_]*\.js$/i.test(name)
+        })
+      resolve(r)
+    })
   }
 
   allInjects (type) {
     var method = ''
     var message = ''
+    var key = null
     if (type === 'style') {
       method = 'injectStyles'
       message = 'Stylesheet'
+      key = '_styles'
     } else if (type === 'script') {
       method = 'injectScripts'
       message = 'Script'
+      key = '_scripts'
     } else if (type === 'module') {
       method = 'injectModuleScripts'
       message = 'Module-Script'
+      key = '_moduleScripts'
     } else {
       console.warn('Invalid injection type:', type)
       return
     }
     var is = []
     for (var component of this.components) {
-      var cis = component[method]()
+      var cis = (component.customOverride[key])
+        ? component.customOverride[key]
+        : component[method]()
       if (cis && Array.isArray(cis) && cis.length > 0) {
         for (var s of cis) {
           if (!is.find((item) => {
@@ -255,17 +255,22 @@ class _Components {
   prepareClient () {
     return new Promise((resolve, reject) => {
       try {
-        resolve({
-          listId: this.listId(),
+        this.clientPrepares = {
+          // listId: this.listId(),
           scripts: this.allInjects('script'),
           styles: this.allInjects('style'),
           modules: this.allInjects('module'),
           elements: this.allCustomElements()
-        })
+        }
+        resolve()
       } catch (e) {
         reject(e)
       }
     })
+  }
+
+  getClientFeed () {
+    return this.clientPrepares
   }
 
   messageToComponent (mObj) {

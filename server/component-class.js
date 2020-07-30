@@ -1,16 +1,27 @@
 const Helper = require('./components.js').export()
 
 class ComponentClass {
-  constructor (config = {}, elements = {}) {
+  constructor (_config) {
+    const {
+      config = {},
+      _moduleScripts = null,
+      _scripts = null,
+      _styles = null,
+      disabled = false,
+      ...elements
+    } = _config
+    if (disabled) {
+      console.warn('Component will not constructed(disabled: true)')
+      return new Error('Component will not constructed(disabled: true)')
+    }
     this.config = config
     this.elements = elements
+    this.customOverride = { _moduleScripts, _scripts, _styles }
   }
 
   onConstructed () {}
 
   onLoaded () {}
-
-  customElements () { return [] }
 
   onClientReady (clientId) {}
 

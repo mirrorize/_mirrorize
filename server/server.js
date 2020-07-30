@@ -1,15 +1,8 @@
 class _Server {
   init (config) {
     const checkConfig = (config) => {
-      this.serverId = null
       if (!config) {
         throw new Error('Invalid server configuration')
-      }
-      if (!config.server) {
-        throw new Error('Invalid server configuration (server)')
-      }
-      if (!config.components) {
-        throw new Error('Invalid server configuration (components)')
       }
       // if (!config.commander) throw new Error('Invalid server configuration (commander)')
     }
@@ -19,26 +12,32 @@ class _Server {
         checkConfig(config)
       } catch (e) {
         reject(e)
+        return
       }
 
-      var promises = []
       this.Components = require('./components.js')
       this.WebServer = require('./webserver.js')
       this.Commander = require('./commander.js')
       this.Clients = require('./clients.js')
       this.WebSocket = require('./websocket.js')
 
-      promises.push(this.WebServer.init(config.server.webserver))
-      promises.push(this.WebSocket.init(this.WebServer.server))
-      promises.push(this.Components.init(config.components))
-      promises.push(this.Commander.init(config.server.commander))
-      promises.push(this.WebServer.bindComponent(this.Components.list()))
-      promises.push(this.Commander.registerComponentCommand(
-        this.Components.list()
-      ))
-      promises.push(this.WebServer.start())
-      promises.push(this.WebSocket.start(this.socketHandler.bind(this)))
-      Promise.all(promises).then(resolve).catch(reject)
+      const scenario = async () => {
+        try {
+          await this.WebServer.init(config.webserver)
+          await this.WebSocket.init(this.WebServer.server)
+          await this.Components.init()
+          await this.Components.prepareClient()
+          await this.Commander.init(config.commander)
+          await this.WebServer.bindComponent(this.Components.list())
+          await this.Commander.registerComponentCommand(this.Components.list())
+          await this.WebServer.start()
+          await this.WebSocket.start(this.socketHandler.bind(this))
+          resolve()
+        } catch (e) {
+          reject(e)
+        }
+      }
+      scenario()
     })
   }
 
@@ -52,7 +51,7 @@ class _Server {
         case 'SOCKET_OPENED':
           var client = this.Clients.register(_client, ws)
           if (client) {
-            this.Components.prepareClient().then(resolve).catch(reject)
+            resolve(this.Components.getClientFeed())
           } else {
             reject(new Error('CLIENT_REGISTER_FAIL'))
           }

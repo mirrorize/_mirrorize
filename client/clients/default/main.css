@@ -1,0 +1,32 @@
+html {}
+
+body {
+  padding: 10px;
+  height: calc(100vh - 20px);
+  width: calc(100vw - 20px);
+  box-sizing: border-box;
+  position: absolute;
+  background-color: #000;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  overflow: hidden;
+  color: #999;
+}
+
+#oops {
+  background-color: #090;
+}
+
+
+mz-image::part(background) {
+  background-color:#666;
+}
+
+mz-image::part(mainImage) {
+  width: 95%;
+  height: 95%;
+  top: 2.5%;
+  left: 2.5%;
+}

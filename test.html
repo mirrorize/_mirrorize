@@ -1,0 +1,71 @@
+<html>
+
+<head>
+<style>
+#self {
+  display: grid;
+  column-gap: 5px;
+  row-gap: 5px;
+  width: 100%;
+  background-color:#333;
+  overflow: hidden;
+}
+#title {
+  background-color: #345;
+  grid-area: title;
+}
+
+#photo {
+  background-color: #354;
+  display:none;
+  grid-area: photo;
+}
+#content {
+  background-color: #543;
+  grid-area: content;
+}
+#source {
+  background-color: #259;
+  grid-area: source;
+}
+#date {
+  background-color: #390;
+  grid-area: date;
+}
+
+#self.vertical {
+  grid-template-columns: 1fr 1fr;
+  grid-template:
+    "title title" 1fr
+    "photo photo" min-content
+    "content content" 3fr
+    "source date" auto
+}
+
+
+#self.horizontal {
+  grid-template-columns: min-content 2fr 2fr;
+  grid-template-rows: 1fr 5fr 1fr;
+  grid-template-areas:
+    "photo title title"
+    "photo content content"
+    "photo source date";
+}
+
+
+
+
+</style>
+</head>
+
+<body>
+  <div id="self" class="vertical">
+    <div id="title">title</div>
+    <div id="photo">photo</div>
+    <div id="content">content</div>
+    <div id="source">source</div>
+    <div id="date">date</div>
+  </div>
+</body>
+
+</html>

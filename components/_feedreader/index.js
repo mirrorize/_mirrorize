@@ -46,31 +46,31 @@ class Feed {
     return this.items
   }
 
-  finishScan () {
-    console.info(`Scan result: ${this.items.length} ${this.url}`)
-    this.items.sort(sort)
-    var ret = this.items.slice(0, this.maxItems)
+  finishScan (items) {
+    items.sort(sort)
+    var ret = items.slice(0, this.maxItems)
+    console.info(`Scan result: ${ret.length}/${items.length} ${this.url}`)
     return ret
   }
 
   work () {
     console.info('Scanning feed:', this.url)
-    this.items = []
+    var items = []
     var fp = new FeedParser()
     fp.on('error', (err) => {
-      console.warn('Feed parsing error\n', err.message)
+      console.warn('Feed parsing error:', this.url, '\n', err.message)
     })
     fp.on('readable', () => {
       this.meta = fp.meta
       var item
       while ((item = fp.read())) {
         if (this.className) item.className = this.className
-        if (typeof this.format === 'function') item = this.format(item)
-        this.items.push(item)
+        var ref = this.refineItem(item)
+        if (ref) items.push(ref)
       }
     })
     fp.on('end', () => {
-      this.finishScan()
+      this.items = this.finishScan(items)
     })
     var req = fetch(this.url)
     req.then((res) => {
@@ -82,6 +82,59 @@ class Feed {
     }, (err) => {
       console.warn(`Error for feed scanning: ${this.url} : ${err.message}\nThis feed will be ignored.`)
     })
+  }
+
+  refineItem (item) {
+    if (typeof this.format === 'function') {
+      item = this.format(item)
+      if (!item) return
+    }
+    var meta = {
+      name: this.name,
+      copyright: item.meta.copyright,
+      date: item.meta.date,
+      description: item.meta.description,
+      title: item.meta.title,
+      language: item.meta.language,
+      pubdate: item.meta.pubdate,
+      image: (item.meta.image) ? item.meta.image.url : null
+    }
+    var ref = {
+      name: this.name,
+      title: item.title,
+      description: item.description,
+      summary: item.summary,
+      link: item.link,
+      permalink: item.permalink,
+      date: item.date,
+      pubdate: item.pubdate,
+      author: item.author,
+      guid: item.guid,
+      imageurl: item.imageurl,
+      meta: meta
+    }
+    ref.content = ref.description || ref.summary
+
+    if (ref.imageurl) return ref
+
+    const maxImage = (group) => {
+      var max = group.reduce((prev, current) => (prev['@'].width > current['@'].width) ? prev : current)
+      return max['@'].url
+    }
+    if (Object.keys(item.image).length > 0) {
+      ref.imageurl = item.image.url
+    }
+    if (item['rss:image'] && item['rss:image']['#']) {
+      ref.imageurl = item['rss:image']['#']
+    }
+    if (item['media:content'] && Array.isArray(item['media:content'])) {
+      ref.imageurl = maxImage(item['media:content'])
+    }
+    if (item['media:group'] && item['media:group']['media:content']) {
+      ref.imageurl = maxImage(item['media:group']['media:content'])
+    }
+
+    return ref
   }
 }
 

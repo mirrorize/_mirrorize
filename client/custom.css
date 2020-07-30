@@ -46,3 +46,17 @@ mz-clock::part(weeks) {
 mz-compliment {
   font-size: 5vw;
 }
+
+
+#bottom_right {
+  grid-area: A4 / A4 / Z5 / A5;
+  background-color: #333;
+  display: flex;
+  flex-direction: column;
+}
+
+#feedPosition {
+  grid-area: C0 / full / Y0 / full;
+  width:100%;
+  height:100%;
+}

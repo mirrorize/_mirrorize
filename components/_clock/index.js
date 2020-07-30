@@ -9,13 +9,6 @@ module.exports = class extends ComponentClass {
     ]
   }
 
-  injectScripts () {
-    return [
-      '/3rdparty/moment.js',
-      '/3rdparty/moment-timezone.js'
-    ]
-  }
-
   onConstructed () {
     var override = {}
     if (this.config.locale) override.locale = this.config.locale

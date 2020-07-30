@@ -1,62 +1,61 @@
-import Socket from './socket.mjs'
-import CustomElement from './customelement.mjs'
+/* global fetch DOMParser */
+import Socket from './_/socket.mjs'
+import CustomElement from './_/customelement.mjs'
 
 window.CustomElement = CustomElement
 
-const protocol = window.location.protocol
-const address = window.location.hostname
-const port = window.location.port
-const serverURL = `${protocol}://${address}:${port}`
-
 class _MZ {
   constructor () {
-    var params = this.getParams(window.location.href)
-    var configPath = (params.config) ? params.config : 'config'
-    try {
-      console.info('Loading configuration:', configPath)
-      import('/_/config/' + configPath).then((config) => {
-        if (!config || !config.default || !config.default.client) {
-          console.log('?')
-          throw new Error('Invalid Client Configuration')
-        }
-        this.config = config.default.client
-        this.module = {}
-        this.serverURL = serverURL
-        this.isAlreadyConnected = false
-        this.isAlreadyPrepared = false
-        this.storage = {}
-        this.injectedScripts = null
-        this.injectedStyles = null
-        this.injectedModules = null
-        this.customElements = null
-        this.connectedElements = null
-        this.styles = [
-          '/_/main.css',
-          '/_/custom.css'
-        ]
-        this.messageSession = []
-        this.start()
-      }).catch((e) => {
-        console.error('Invalid Client Configuration')
-        console.error(e)
-      })
-    } catch (e) {
-      console.error('Invalid Client Configuration')
-      console.error(e)
+    const getParams = (url) => {
+      var params = {}
+      var parser = document.createElement('a')
+      parser.href = url
+      var query = parser.search.substring(1)
+      var vars = query.split('&')
+      for (var i = 0; i < vars.length; i++) {
+        var pair = vars[i].split('=')
+        params[pair[0]] = decodeURIComponent(pair[1])
+      }
+      return params
     }
-  }
 
-  getParams (url) {
-    var params = {}
-    var parser = document.createElement('a')
-    parser.href = url
-    var query = parser.search.substring(1)
-    var vars = query.split('&')
-    for (var i = 0; i < vars.length; i++) {
-      var pair = vars[i].split('=')
-      params[pair[0]] = decodeURIComponent(pair[1])
-    }
-    return params
+    this.protocol = window.location.protocol
+    this.address = window.location.hostname
+    this.port = window.location.port
+    this.serverURL = `${this.protocol}://${this.address}:${this.port}`
+    var params = getParams(window.location.href)
+    this.clientName = (params.client) ? params.client : 'default'
+    this.clientUID = this.clientName + '_' + Date.now()
+    this._isMZReady = false
+    this.isAlreadyConnected = false
+    this.isAlreadyPrepared = false
+    this.storage = {}
+    this.injectedScripts = null
+    this.injectedStyles = null
+    this.injectedModules = null
+    this.customElements = []
+    this.connectedElements = null
+    this.styles = ['/_/common.css']
+    this.messageSession = []
+
+    import('/_client/config.js').then((module) => {
+      this.config = module.default
+    }).catch((e) => {
+      console.error(e)
+    })
+    fetch('/_client/template.html').then((response) => {
+      return response.text()
+    }).then((html) => {
+      var parser = new DOMParser()
+      var doc = parser.parseFromString(html, 'text/html')
+      var body = doc.querySelector('template#body').content
+      document.body.appendChild(body.cloneNode(true))
+    }).catch((err) => {
+      console.error(err)
+      console.warn('Invalid template file. No content for body will be loaded.')
+    })
+
+    this.start()
   }
 
   setStorage (key, particle, data) {
@@ -73,10 +72,10 @@ class _MZ {
   }
 
   start () {
-    this.socket = new Socket(this.config.id, {
-      protocol: this.config.protocol,
-      address: this.config.address,
-      port: this.config.port
+    this.socket = new Socket(this.clientUID, {
+      protocol: this.protocol,
+      address: this.address,
+      port: this.port
     }, this.messageHandler.bind(this))
     this.socket.connect(this.firstOpened.bind(this), this.onSocketConnected.bind(this))
   }
@@ -100,6 +99,8 @@ class _MZ {
           await this.loadCustomElements(msg.message.elements)
           await this.injectStyles(this.styles)
           await this.injectStyles(msg.message.styles)
+          await this.readyCustomElements()
+          this._isMZReady = true
           this.sendMessage({
             message: {
               key: 'CLIENT_PREPARED'
@@ -111,6 +112,17 @@ class _MZ {
       }
     })
   }
+
+  readyCustomElements () {
+    return new Promise((resolve, reject) => {
+      var targets = document.querySelectorAll('[mzcustomelement]')
+      for (const t of [...targets]) {
+        if (typeof t._MZReady === 'function') t._MZReady()
+      }
+      resolve()
+    })
+  }
+
 
   firstOpened () {
     if (this.isAlreadyConnected) {
@@ -127,7 +139,7 @@ class _MZ {
     if (!message) return
     const { key, payload = null } = message
     if (key === 'TO_CLIENT') {
-      var ces = [...document.querySelectorAll('[customElement]')]
+      var ces = [...document.querySelectorAll('[mzcustomelement]')]
       var targets = []
       if (_MZ) {
         // for mirrorize client itself... will it be needed???
@@ -269,10 +281,13 @@ class _MZ {
     const loadElement = (name, url, config, origin) => {
       return new Promise((resolve, reject) => {
         import(url).then((module) => {
-          this.setStorage(name, 'config', config)
-          this.setStorage(name, 'originComponent', origin)
           window.customElements.define(name, module.default)
           console.info('CustomElement loaded:', name, url)
+          this.customElements.push({
+            name: name,
+            url: url,
+            origin: origin
+          })
           resolve()
         }).catch((e) => {
           console.warn(e)
@@ -299,6 +314,14 @@ class _MZ {
     })
   }
 
+  getCustomElementOrigin (name) {
+    var r = this.customElements.find((ce) => {
+      return ce.name === name
+    })
+    if (r) return r.origin
+    return null
+  }
+
   /* ???? */
   registerElement (el) {
     this.connectedElements[el.uid] = el.mzTagName
@@ -316,10 +339,17 @@ class _MZ {
   getClientId () {
     return this.config.id
   }
+
+  isMZReady () {
+    return this._isMZReady
+  }
 }
 
 const mz = new _MZ()
 window.MZ = {
+  config: mz.config,
+  isMZReady: mz.isMZReady.bind(mz),
+  getCustomElementOrigin: mz.getCustomElementOrigin.bind(mz),
   getStorage: mz.getStorage.bind(mz),
   setStorage: mz.setStorage.bind(mz),
   sendMessage: mz.sendMessage.bind(mz),

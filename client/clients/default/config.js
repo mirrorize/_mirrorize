@@ -11,7 +11,12 @@ const config = {
         pages: 'page1, page2'
       }
     }
-  ]
+  ],
+  customConfig: {
+    'temp.1': {
+      foo: 'overridden'
+    }
+  }
 }
 
 export default config

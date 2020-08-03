@@ -1,5 +1,12 @@
 const WebSocket = require('ws')
 
+const replacer = (key, value) => {
+  if (typeof value === 'function') {
+    return '__FUNC__' + value.toString()
+  }
+  return value
+}
+
 class _WebSocket {
   init (server) {
     return new Promise((resolve, reject) => {
@@ -72,7 +79,7 @@ class _WebSocket {
   }
 
   sendMessage (msg, ws) {
-    ws.send(JSON.stringify(msg))
+    ws.send(JSON.stringify(msg, replacer, 2))
   }
 }
 

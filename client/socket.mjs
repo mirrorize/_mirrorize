@@ -1,4 +1,25 @@
 /* global WebSocket */
+const parseFunction = (str) => {
+  var fnBodyIdx = str.indexOf('{')
+  var fnBody = str.substring(fnBodyIdx + 1, str.lastIndexOf('}'))
+  var fnDeclare = str.substring(0, fnBodyIdx)
+  var fnParams = fnDeclare.substring(fnDeclare.indexOf('(') + 1, fnDeclare.lastIndexOf(')'))
+  var args = fnParams.split(',')
+  args.push(fnBody)
+  function Fn () {
+    return Function.apply(this, args)
+  }
+  Fn.prototype = Function.prototype
+  return new Fn()
+}
+
+const reviver = (key, value) => {
+  if (typeof value === 'string' && value.indexOf('__FUNC__') === 0) {
+    value = value.slice(8)
+    return parseFunction(value)
+  }
+  return value
+}
 
 class Socket {
   constructor (clientId, config, handler = () => {}) {
@@ -58,7 +79,7 @@ class Socket {
         onConnected()
       }
       this.socket.onmessage = (event) => {
-        var message = JSON.parse(event.data)
+        var message = JSON.parse(event.data, reviver)
         if (message._client !== this.id) return
         if (message._session && message._reply) {
           var r = this.session.get(message._session)

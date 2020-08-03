@@ -1,70 +1,77 @@
 <html>
 
 <head>
-<style>
-#self {
-  display: grid;
-  column-gap: 5px;
-  row-gap: 5px;
-  width: 100%;
-  background-color:#333;
-  overflow: hidden;
-}
-#title {
-  background-color: #345;
-  grid-area: title;
-}
+<script>
 
-#photo {
-  background-color: #354;
-  display:none;
-  grid-area: photo;
-}
-#content {
-  background-color: #543;
-  grid-area: content;
-}
-#source {
-  background-color: #259;
-  grid-area: source;
-}
-#date {
-  background-color: #390;
-  grid-area: date;
+class AT extends HTMLElement {
+  constructor () {
+    super()
+    var shadow = this.attachShadow({ mode: 'open' })
+    shadow.innerHTML = `
+    <style>
+    :host {
+      display: block;
+    }
+    :host([hidden]) {
+      display:none;
+    }
+    </style>
+    <div>
+    <p>The Time - Black Eyed Peas </p>
+    <p>The Time - Black Eyed Peas </p>
+    <p>The Time - Black Eyed Peas </p>
+    <p>The Time - Black Eyed Peas </p>
+    <p>The Time - Black Eyed Peas </p>
+    <p>The Time - Black Eyed Peas </p>
+    </div>
+    `
+  }
 }
 
-#self.vertical {
-  grid-template-columns: 1fr 1fr;
-  grid-template:
-    "title title" 1fr
-    "photo photo" min-content
-    "content content" 3fr
-    "source date" auto
-}
+window.customElements.define('a-t', AT)
 
+setTimeout(() => {
+  var x = document.querySelector('#why')
+  x.style.opacity = 0.5
+  console.log('animate')
+  var tests = document.querySelectorAll('.test')
+  for (var t of [...tests]) {
+    console.log(t)
+    var animation = [
+      { transform: 'translateY(0px)' },
+      {
+        transform: 'translateY(300px)',
+        opacity: 0.3
+      }
+    ]
+    var ani = t.animate(animation, {
+      // timing options
+      duration: 1000,
+      fill: 'forwards',
+    })
+    ani.onfinish = () => {
+      var last = animation[animation.length - 1]
+      var keys = Object.keys(last)
+      for (var name of keys) {
+        t.style[name] = last[name]
+      }
+      console.log('end', t)
+    }
+  }
+}, 1000)
 
-#self.horizontal {
-  grid-template-columns: min-content 2fr 2fr;
-  grid-template-rows: 1fr 5fr 1fr;
-  grid-template-areas:
-    "photo title title"
-    "photo content content"
-    "photo source date";
-}
-
-
-
-
-</style>
+</script>
 </head>
 
 <body>
-  <div id="self" class="vertical">
-    <div id="title">title</div>
-    <div id="photo">photo</div>
-    <div id="content">content</div>
-    <div id="source">source</div>
-    <div id="date">date</div>
+  <a-t class="test" id="why"></a-t>
+  <div class="test">
+    <p>Electric Boogie - XXX </p>
+    <p>Electric Boogie - XXX </p>
+    <p>Electric Boogie - XXX </p>
+    <p>Electric Boogie - XXX </p>
+    <p>Electric Boogie - XXX </p>
+    <p>Electric Boogie - XXX </p>
   </div>
 </body>
 

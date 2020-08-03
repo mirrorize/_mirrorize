@@ -60,8 +60,8 @@ class _WebServer {
         for (const component of components) {
           var route = '/' + component.id
           var cb = component.webserve.bind(component)
-          const statics = route + '/static'
-          this.express.use(statics, express.static(path.join(component.dir, 'static')))
+          const statics = route + '/public'
+          this.express.use(statics, express.static(path.join(component.dir, 'public')))
           console.info(`Route for static files '${statics}' is added to webserver.`)
           const elements = route + '/elements'
           this.express.use(elements, express.static(path.join(component.dir, 'elements')))

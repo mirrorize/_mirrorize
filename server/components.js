@@ -162,43 +162,56 @@ class _Components {
 
   allCustomElements () {
     var ce = []
-    for (var component of this.components) {
-      this.scanCustomElement(component).then((r) => {
-        for (const file of r) {
-          const e = file.substring(0, file.length - 3)
-          if (!ce.find((item) => {
-            return (item.name === e)
-          })) {
-            ce.push({
-              name: e,
-              path: path.join(component.dir, 'elements', file),
-              url: component.url + '/elements/' + file,
-              origin: component.id,
-              config: (component.elements[e]) ? component.elements[e] : null
+    const scanCustomElement = (component) => {
+      return new Promise((resolve, reject) => {
+        var cPath = path.join(component.dir, 'elements')
+        try {
+          const r = fs.readdirSync(cPath, { withFileTypes: true })
+            .filter((dirent) => {
+              return dirent.isFile()
             })
-          } else {
-            console.warn(`Custom Element '${component.id}.${e}' seems duplicated. It will be ignored.'`)
+            .map((dirent) => {
+              return dirent.name
+            })
+            .filter((name) => {
+              return /^mz-[0-9a-zA-Z-_]*\.js$/i.test(name)
+            })
+          for (const file of r) {
+            const e = file.substring(0, file.length - 3)
+            if (!ce.find((item) => {
+              return (item.name === e)
+            })) {
+              var el = (component.elements[e]) ? component.elements[e] : null
+              ce.push({
+                name: e,
+                path: path.join(component.dir, 'elements', file),
+                url: component.url + '/elements/' + file,
+                origin: component.id,
+                config: (el && el.config) ? el.config : null,
+                template: (el && el.template) ? el.template : null,
+                _config: (el) || null
+              })
+              resolve()
+            } else {
+              console.warn(`Custom Element '${component.id}.${e}' seems duplicated. It will be ignored.'`)
+            }
           }
+        } catch (e) {
+          console.warn(e.message)
+          console.info('There is no element to scan in component:', component.id)
+          resolve()
         }
       })
     }
-    return ce
-  }
 
-  scanCustomElement (component) {
     return new Promise((resolve, reject) => {
-      var cPath = path.join(component.dir, 'elements')
-      var r = fs.readdirSync(cPath, { withFileTypes: true })
-        .filter((dirent) => {
-          return dirent.isFile()
-        })
-        .map((dirent) => {
-          return dirent.name
-        })
-        .filter((name) => {
-          return /^mz-[0-9a-zA-Z-_]*\.js$/i.test(name)
-        })
-      resolve(r)
+      var promises = []
+      for (var component of this.components) {
+        promises.push(scanCustomElement(component))
+      }
+      Promise.allSettled(promises).then(() => {
+        resolve(ce)
+      })
     })
   }
 
@@ -255,14 +268,16 @@ class _Components {
   prepareClient () {
     return new Promise((resolve, reject) => {
       try {
-        this.clientPrepares = {
-          // listId: this.listId(),
-          scripts: this.allInjects('script'),
-          styles: this.allInjects('style'),
-          modules: this.allInjects('module'),
-          elements: this.allCustomElements()
-        }
-        resolve()
+        this.allCustomElements().then((r) => {
+          this.clientPrepares = {
+            // listId: this.listId(),
+            scripts: this.allInjects('script'),
+            styles: this.allInjects('style'),
+            modules: this.allInjects('module'),
+            elements: r
+          }
+          resolve()
+        }).catch(reject)
       } catch (e) {
         reject(e)
       }

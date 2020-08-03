@@ -6,15 +6,11 @@
 -->
 
 <template id="body">
-  <div class="header" style="height:800px; width:800px;">
-    <mz-image src="https://source.unsplash.com/random" autoseed refreshinterval="5000" objectfit="contain" ></mz-image>
-  </div>
-  <!--
-  <div class="header">
-    <image src="https://picsum.photos/200/300"/>
-      <p> this is test </p>
-  </div>
-  -->
+  <div><span class="iconify" data-icon="flat-color-icons:rating" data-inline="false"></span>---</div>
+  <mz-test>
+    <span slot="a1">This is injection.</span>
+  </mz-test>
+  <div>---</div>
 </template>
 
 
@@ -24,3 +20,22 @@
   ...
 </template>
 -->
+<template id="test1">
+<style>
+  :host {
+    display: block;
+  }
+</style>
+<div>This is user customized template</div>
+<div>[<slot name="a1"></slot>]</div>
+<div><span class="iconify-inline" data-icon="mdi-account-box"></span></div>
+<div><span class="iconify" data-icon="wi:smoke" data-inline="false"></span></div>
+<div>end</div>
+</template>
+<template id="test2">
+  <div>This is Another user customized template</div>
+  <div><slot name="a1"></slot></div>
+  <div><span class="iconify-inline" data-icon="mdi-account-box"></span>
+  <div><span class="iconify" data-icon="wi:smoke" data-inline="false"></span></div>
+  <div>end</div>
+</template>

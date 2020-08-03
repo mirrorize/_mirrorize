@@ -8,7 +8,7 @@ class ComponentClass {
       _scripts = null,
       _styles = null,
       disabled = false,
-      ...elements
+      elements = {}
     } = _config
     if (disabled) {
       console.warn('Component will not constructed(disabled: true)')

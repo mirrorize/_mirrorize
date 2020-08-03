@@ -1,4 +1,4 @@
-/* global fetch DOMParser */
+/* global fetch  */
 import Socket from './_/socket.mjs'
 import CustomElement from './_/customelement.mjs'
 
@@ -18,7 +18,7 @@ class _MZ {
       }
       return params
     }
-
+    this.onReadyJobs = []
     this.protocol = window.location.protocol
     this.address = window.location.hostname
     this.port = window.location.port
@@ -41,21 +41,40 @@ class _MZ {
     import('/_client/config.js').then((module) => {
       this.config = module.default
     }).catch((e) => {
+      console.log('????')
       console.error(e)
     })
+    this.start()
+  }
+
+  prepareTemplates () {
     fetch('/_client/template.html').then((response) => {
       return response.text()
     }).then((html) => {
-      var parser = new DOMParser()
-      var doc = parser.parseFromString(html, 'text/html')
-      var body = doc.querySelector('template#body').content
-      document.body.appendChild(body.cloneNode(true))
+      this.templates = document.createRange().createContextualFragment(html)
+      var body = this.getTemplate('body')
+      if (body) {
+        document.body.appendChild(body)
+      } else {
+        console.warn('Invalid template file. No content for body will be loaded.')
+      }
     }).catch((err) => {
       console.error(err)
       console.warn('Invalid template file. No content for body will be loaded.')
     })
+  }
 
-    this.start()
+  getTemplate (selector) {
+    try {
+      return this.templates.querySelector('template#' + selector).content.cloneNode(true)
+    } catch (e) {
+      console.warn(e)
+      return null
+    }
+  }
+
+  getConfig () {
+    return this.config
   }
 
   setStorage (key, particle, data) {
@@ -94,13 +113,16 @@ class _MZ {
       if (msg._reply && msg.original.key === 'SOCKET_OPENED') {
         (async () => {
           // await this.createCSP(this.injectedScripts) /* reserved */
-          await this.injectModules(msg.message.modules)
-          await this.injectScripts(msg.message.scripts)
-          await this.loadCustomElements(msg.message.elements)
           await this.injectStyles(this.styles)
           await this.injectStyles(msg.message.styles)
-          await this.readyCustomElements()
+          await this.injectScripts(msg.message.scripts)
+          await this.injectModules(msg.message.modules)
+          await this.loadCustomElements(msg.message.elements)
+          this.prepareTemplates()
           this._isMZReady = true
+          console.info('MZ is ready.')
+          await this.doOnReadyJob()
+          await this.readyCustomElements()
           this.sendMessage({
             message: {
               key: 'CLIENT_PREPARED'
@@ -113,6 +135,17 @@ class _MZ {
     })
   }
 
+  doOnReadyJob () {
+    while (this.onReadyJobs.length > 0) {
+      var cb = this.onReadyJobs.pop()
+      if (typeof cb === 'function') cb()
+    }
+  }
+
+  registerOnReadyJob (callback) {
+    if (typeof callback === 'function') this.onReadyJobs.push(callback)
+  }
+
   readyCustomElements () {
     return new Promise((resolve, reject) => {
       var targets = document.querySelectorAll('[mzcustomelement]')
@@ -122,7 +155,6 @@ class _MZ {
       resolve()
     })
   }
-
 
   firstOpened () {
     if (this.isAlreadyConnected) {
@@ -155,6 +187,7 @@ class _MZ {
   }
 
   /* this method is not completed. */
+  /*
   createCSP (scripts) {
     return new Promise((resolve) => {
       const tmpl = [
@@ -177,20 +210,35 @@ class _MZ {
       resolve()
     })
   }
+  */
 
   injectStyles (styles) {
-    const injectStyle = (url) => {
+    const injectStyle = (script) => {
       return new Promise((resolve, reject) => {
         try {
+          var id = null
+          var src = null
+          if (typeof script === 'object' && script.src) {
+            id = (script.id) ? script.id : null
+            src = (script.src) ? script.src : null
+          } else {
+            src = script
+          }
+          if (!src) {
+            console.info('Invalid src:', script)
+            reject(new Error('Invalid src'))
+            return
+          }
           var load = document.createElement('link')
+          if (id) load.setAttribute('id', id)
           load.setAttribute('type', 'text/css')
           load.setAttribute('rel', 'stylesheet')
-          load.setAttribute('href', url)
+          load.setAttribute('href', src)
           document.getElementsByTagName('head')[0].appendChild(load)
-          console.info('Stylesheet loaded:', url)
+          console.info('Stylesheet loaded:', src)
           resolve()
         } catch (e) {
-          console.warn('Stylesheet failed to load:', url)
+          console.warn('Stylesheet failed to load:', src)
           reject(e)
         }
       })
@@ -212,8 +260,21 @@ class _MZ {
       return new Promise((resolve, reject) => {
         if (Array.isArray(sA) && sA.length >= 1) {
           const script = sA.shift()
+          var id = null
+          var src = null
+          if (typeof script === 'object' && script.src) {
+            id = (script.id) ? script.id : null
+            src = (script.src) ? script.src : null
+          } else {
+            src = script
+          }
+          if (!src) {
+            console.info('Invalid src:', script)
+            reject(new Error('Invalid src'))
+          }
           var load = document.createElement('script')
-          load.setAttribute('src', script)
+          if (id) load.setAttribute('id', id)
+          load.setAttribute('src', src)
           load.setAttribute('charset', 'UTF-8')
           load.setAttribute('defer', '')
           document.getElementsByTagName('head')[0].appendChild(load)
@@ -245,19 +306,15 @@ class _MZ {
         if (Array.isArray(sA) && sA.length >= 1) {
           const script = sA.shift()
           import(script).then((module) => {
-            const { onLoaded = () => {}, ...rest } = module
+            const { ...rest } = module
             for (const [key, value] of Object.entries(rest)) {
-              if (Object.prototype.hasOwnProperty.call(this, key)) {
+              if (Object.prototype.hasOwnProperty.call(window.MZ, key)) {
                 console.warn(`Identifier '${key}'' of module-script is already registered:`, script)
               } else {
-                this[key] = value
+                window.MZ[key] = value
               }
             }
             console.info('Module-Script loaded:', script)
-            if (typeof onLoaded === 'function') {
-              onLoaded()
-            }
-
             resolve(loadScripts(sA))
           }).catch((e) => {
             console.warn('Module-Script failed to load:', script)
@@ -278,16 +335,14 @@ class _MZ {
   }
 
   loadCustomElements (elements) {
-    const loadElement = (name, url, config, origin) => {
+    const loadElement = (el) => {
       return new Promise((resolve, reject) => {
+        const { name, url } = el
         import(url).then((module) => {
           window.customElements.define(name, module.default)
+          this.customElements.push(el)
+          module.default._onLoaded(el)
           console.info('CustomElement loaded:', name, url)
-          this.customElements.push({
-            name: name,
-            url: url,
-            origin: origin
-          })
           resolve()
         }).catch((e) => {
           console.warn(e)
@@ -300,8 +355,8 @@ class _MZ {
       try {
         if (!elements || !Array.isArray(elements) || elements.length < 1) resolve()
         var promises = []
-        for (const { name, url, config, origin } of elements) {
-          promises.push(loadElement(name, url, config, origin))
+        for (const el of elements) {
+          promises.push(loadElement(el))
         }
         Promise.allSettled(promises).then(() => {
           console.info('All customElements are loaded.')
@@ -319,6 +374,19 @@ class _MZ {
       return ce.name === name
     })
     if (r) return r.origin
+    return null
+  }
+
+  getCustomElementDefinition (name) {
+    return this.customElements.find((ce) => {
+      return ce.name === name
+    })
+  }
+
+  getCustomConfig (name) {
+    if (this.config.customConfig) {
+      return (this.config.customConfig[name]) ? this.config.customConfig[name] : null
+    }
     return null
   }
 
@@ -347,12 +415,38 @@ class _MZ {
 
 const mz = new _MZ()
 window.MZ = {
-  config: mz.config,
+  registerOnReadyJob: mz.registerOnReadyJob.bind(mz),
+  getTemplate: mz.getTemplate.bind(mz),
+  getCustomConfig: mz.getCustomConfig.bind(mz),
+  getConfig: mz.getConfig.bind(mz),
   isMZReady: mz.isMZReady.bind(mz),
-  getCustomElementOrigin: mz.getCustomElementOrigin.bind(mz),
+  getCustomElementDefinition: mz.getCustomElementDefinition.bind(mz),
+  // getCustomElementOrigin: mz.getCustomElementOrigin.bind(mz),
   getStorage: mz.getStorage.bind(mz),
   setStorage: mz.setStorage.bind(mz),
   sendMessage: mz.sendMessage.bind(mz),
   getClientId: mz.getClientId.bind(mz)
 }
 export default mz
+
+/*
+let reviver = (key, value) => {
+  if (typeof value === 'string' && value.indexOf('__FUNC__') === 0) {
+    value = value.slice(8)
+    let functionTemplate = `(${value})`
+    return eval(functionTemplate)
+  }
+  return value
+}
+var p = JSON.parse(payload, reviver)
+// ---
+
+let replacer = (key, value) => {
+  if (typeof value == "function") {
+    return "__FUNC__" + value.toString()
+  }
+  return value
+}
+
+JSON.stringify(p, replacer, 2)
+*/

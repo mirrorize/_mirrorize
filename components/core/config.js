@@ -1,6 +1,24 @@
 module.exports = {
   disabled: false,
   config: {
+
+  },
+  elements: {
+    'mz-test': {
+      config: {
+        foo: 1,
+        test: function () { console.log('oops') },
+        test1: function oops (a, b, c, d) { console.log(a, b, c, d) },
+        test2: (b, ...rest) => { console.log(b, rest) }
+      }
+    },
+    'mz-notify': {
+      timer: 5000,
+      type: 'log',
+      className: 'foo',
+      position: 'bottom left',
+      icon: 'Wow <span class="iconify-inline" data-icon="fa-solid:home">!</span>:'
+    }
   }
 
   /* Usually you don't need this redefine. */

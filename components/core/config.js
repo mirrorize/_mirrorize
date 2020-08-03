@@ -12,12 +12,8 @@ module.exports = {
         test2: (b, ...rest) => { console.log(b, rest) }
       }
     },
-    'mz-notify': {
-      timer: 5000,
-      type: 'log',
-      className: 'foo',
-      position: 'bottom left',
-      icon: 'Wow <span class="iconify-inline" data-icon="fa-solid:home">!</span>:'
+    'mz-notify-item': {
+      importShadowCSS: '/core/public/core.css'
     }
   }
 

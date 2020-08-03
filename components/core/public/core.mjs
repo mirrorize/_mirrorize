@@ -32,7 +32,24 @@ setTimeout(() => {
     content: '<p>new image</p><img src="https://via.placeholder.com/150">',
     title: '3oops',
     type: 'warn',
-    timer: 15000,
+    timer: 15000000,
+    icon: '<span class="iconify" data-icon="flat-color-icons:rating" data-inline="true"></span>',
+    position: 'bottom right',
+    styleOverride: `
+.warn {
+  background-color:#09F;
+  color: white;
+}
+.warn .title {
+  background-color:#FF3;
+}
+`
+  })
+  window.MZ.notify({
+    content: '<p>new image</p><img src="https://via.placeholder.com/150">',
+    title: '4warn',
+    type: 'warn',
+    timer: 15000000,
     icon: '<span class="iconify" data-icon="flat-color-icons:rating" data-inline="true"></span>',
     position: 'bottom right'
   })

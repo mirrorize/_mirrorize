@@ -17,7 +17,13 @@ body {
 #oops {
   background-color: #090;
 }
+mz-notify::part(mz-notify-item-title) {
+  color: orange;
+}
 
+::part(mz-notify-item-title) {
+  background-color:#0FF;
+}
 /*
 mz-image::part(background) {
   background-color:#666;

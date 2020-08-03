@@ -37,6 +37,12 @@ const defTemplate = `
   right: 0;
   align-items: flex-end;
 }
+
+mz-notify-item.error::part(mz-notify-item-title) {
+  color: white;
+}
+
+
 </style>
 <div class="notify">
   <div class="container top left"></div>
@@ -60,6 +66,7 @@ export default class extends CustomElement {
   }
 
   onReady () {
+    this.setAttribute('exportparts', 'mz-notify-item, mz-notify-item-icon, mz-notify-item-title, mz-notify-item-content')
     this.default = {
       timer: (this.config.timer) ? this.config.timer : 5000,
       position: (this.config.position) ? this.config.position : 'top left',
@@ -113,6 +120,18 @@ export default class extends CustomElement {
   }
 
   notify (obj) {
+    /*
+    {
+      timer,
+      type,
+      position,
+      icon,
+      title,
+      content,
+      callback,
+      styleOverride
+    }
+    */
     var dom = this.contentDom
     var n = document.createElement('mz-notify-item')
     n.dataset.timer = (obj.timer) ? obj.timer : this.default.timer
@@ -127,6 +146,7 @@ export default class extends CustomElement {
       n.appendChild(s)
     }
     if (obj.callback) n.callback = obj.callback
+    if (obj.styleOverride) n.styleOverride = obj.styleOverride
     var pos = '.' + n.dataset.position.replace(' ', '.')
     var query = `.notify .container${pos}`
     dom.querySelector(query).appendChild(n)

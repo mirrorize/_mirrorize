@@ -48,6 +48,10 @@ class CustomElement extends HTMLElement {
     return false
   }
 
+  get importedShadowCSS () {
+    return null
+  }
+
   // false : you need to draw initial content with .defaultContent() or render by yourself sometime.
   get templateCustomizable () {
     return true
@@ -112,6 +116,14 @@ class CustomElement extends HTMLElement {
       }
     }
     if (template) this.contentDom.appendChild(template)
+    if (this.shadowRoot) {
+      var imp = this.importedShadowCSS
+      if (imp) {
+        var style = document.createElement('style')
+        style.innerHTML = `@import url("${imp}");`
+        this.contentDom.appendChild(style)
+      }
+    }
     Object.defineProperty(this, 'isConstructed', {
       value: true,
       writable: false
@@ -273,6 +285,14 @@ class CustomElement extends HTMLElement {
         resolve()
       }
     })
+  }
+
+  exportChildrenParts () {
+    if (this.shadowRoot) {
+      var all = this.contentDom.querySelectorAll('[part]')
+      var exportparts = [...all].map((d) => { return d.getAttribute('part') }).join(', ')
+      if (exportparts) this.setAttribute('exportparts', exportparts)
+    }
   }
 
   sendMessage (message, callback, bindTo = this.bindTo) {

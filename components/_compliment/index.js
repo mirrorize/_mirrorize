@@ -1,12 +1,6 @@
 const { ComponentClass } = require('../../server/component-helper.js')
 
 class Compliment extends ComponentClass {
-  customElements () {
-    return [
-      'mz-compliment'
-    ]
-  }
-
   onConstructed () {
     this.defaults = {
       conditions: {

@@ -1,3 +1,9 @@
+.custom {
+  color: red;
+  background-color:#333;
+}
+
+/*
 .layer {
   position: absolute;
   top: 0;
@@ -87,3 +93,4 @@
   z-index: 20;
   opacity: 0.8;
 }
+*/

@@ -26,13 +26,18 @@ class ComponentClass {
   onClientReady (clientId) {}
 
   start () {
-    return new Promise((resolve) => {
-      this.onStart()
-      resolve()
+    return new Promise((resolve, reject) => {
+      try {
+        this.onReady()
+        resolve()
+      } catch (e) {
+        console.error(e)
+        reject(e)
+      }
     })
   }
 
-  onStart () {}
+  onReady () {}
 
   injectScripts () { return [] }
   injectStyles () { return [] }
@@ -42,11 +47,13 @@ class ComponentClass {
     this.onRequested(req, res)
   }
 
+  getStaticRoutes () { return [] } // return array of string or array object{route, path}
+
   onRequested (req, res) {
     res.status(404).send('No response.')
   }
 
-  getHelper () {
+  getHelper () { // ????
     return this.helper
   }
 

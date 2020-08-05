@@ -85,16 +85,16 @@ export default class extends CustomElement {
       this.contentDom.appendChild(style)
     }
 
+    var transform = (self.classList.contains('left')) ? 'translateX(-100%)' : 'translateX(100%)'
+
     const showAnimation = {
       opacity: [0, 1],
-      transform: ['translateX(0%)']
+      transform: [transform, 'translateX(0%)']
     }
-
-    var transform = (self.classList.contains('left')) ? 'translateX(-100%)' : 'translateX(100%)'
 
     const hideAnimation = {
       opacity: [1, 0],
-      transform: [transform]
+      transform: ['translateX(0%)', transform]
     }
 
     const timing = {

@@ -35,7 +35,7 @@ class _MZ {
     this.injectedModules = null
     this.customElements = []
     this.connectedElements = null
-    this.styles = ['/_/common.css']
+    this.styles = ['/_/common.css', '/_client/main.css']
     this.messageSession = []
 
     import('/_client/config.js').then((module) => {
@@ -113,8 +113,8 @@ class _MZ {
       if (msg._reply && msg.original.key === 'SOCKET_OPENED') {
         (async () => {
           // await this.createCSP(this.injectedScripts) /* reserved */
-          await this.injectStyles(this.styles)
           await this.injectStyles(msg.message.styles)
+          await this.injectStyles(this.styles)
           await this.injectScripts(msg.message.scripts)
           await this.injectModules(msg.message.modules)
           await this.loadCustomElements(msg.message.elements)

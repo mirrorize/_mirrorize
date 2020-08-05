@@ -4,10 +4,15 @@ const Clients = require('./clients.js')
 
 function _require (required) {
   try {
-    var r = require(required)
-    return r
+    if (fs.existsSync(required)) {
+      var r = require(required)
+      return r
+    } else {
+      console.warn('File not found:', required)
+    }
   } catch (e) {
-    console.warn(`${required} doesn't exist.`)
+    console.warn(`${required} has some issue to load.`)
+    console.warn(e.message)
     return null
   }
 }
@@ -21,7 +26,7 @@ class _Components {
       (async () => {
         var list = await this.scanComponents()
         if (!Array.isArray(list) || list.length <= 0) {
-          console.warn('There is no component to load. This would not be the error but need to confirm.')
+          console.warn('There is no component to load. This would not be the error but you need to confirm.')
           resolve()
         }
         const promises = []
@@ -42,8 +47,7 @@ class _Components {
       const configPath = path.join(dir, 'config.js')
       var config = _require(configPath)
       if (!config) {
-        console.warn('Invalid config:', name)
-        console.warn(`Component:${name} will be instanced without configuration.`)
+        console.warn(`Component '${name}' will be instanced without configuration.`)
         config = {}
       }
 
@@ -52,7 +56,6 @@ class _Components {
         reject(new Error('disabled:true'))
         return
       }
-
       var Klass = _require(cPath)
       if (!Klass) {
         console.warn('Fails to find component:', name)
@@ -119,6 +122,36 @@ class _Components {
         })
       resolve(r)
     })
+  }
+
+  getStaticRoutes (component) {
+    var ret = []
+    var list = component.getStaticRoutes()
+    if (!Array.isArray(list)) list = []
+    list.push('public')
+    list.push('elements')
+    for (const p of list) {
+      var r = null
+      var d = null
+      if (typeof p === 'string') {
+        r = path.join(component.url, p)
+        d = path.join(component.dir, p)
+      } else if (typeof p === 'object' && p.route && p.dir) {
+        r = p.route
+        d = p.dir
+      } else {
+        continue
+      }
+      if (fs.existsSync(d)) {
+        ret.push({
+          route: r,
+          dir: d
+        })
+      } else {
+        continue
+      }
+    }
+    return ret
   }
 
   list () {
@@ -197,8 +230,8 @@ class _Components {
             }
           }
         } catch (e) {
-          console.warn(e.message)
-          console.info('There is no element to scan in component:', component.id)
+          // console.warn(e.message)
+          console.info(`Component '${component.id}' has no custom element`)
           resolve()
         }
       })

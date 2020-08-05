@@ -13,7 +13,7 @@ export default class extends CustomElement {
   }
 
   defaultContent () {
-    return '<style>:host{ display: block; }</style><div>This is default</div>'
+    return '<style>:host{ display: block; } </style><div>This is default</div>'
   }
 
   onReady () {

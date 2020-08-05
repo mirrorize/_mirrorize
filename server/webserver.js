@@ -52,21 +52,16 @@ class _WebServer {
 
   bindComponent (components) {
     return new Promise((resolve, reject) => {
-      if (!components || !Array.isArray(components)) {
-        console.warn('There is no component to bind to socket. It might not be the error, but you need to check your configuration.')
-        resolve()
-      }
       try {
-        for (const component of components) {
-          var route = '/' + component.id
+        for (const component of components.list()) {
+          var statics = components.getStaticRoutes(component)
+          if (Array.isArray(statics)) {
+            for (const { route, dir } of statics) {
+              this.express.use(route, express.static(dir))
+            }
+          }
           var cb = component.webserve.bind(component)
-          const statics = route + '/public'
-          this.express.use(statics, express.static(path.join(component.dir, 'public')))
-          console.info(`Route for static files '${statics}' is added to webserver.`)
-          const elements = route + '/elements'
-          this.express.use(elements, express.static(path.join(component.dir, 'elements')))
-          this.express.all(route, cb)
-          console.info(`Route '${route}' is added to webserver.`)
+          this.express.all(component.url, cb)
         }
         resolve()
       } catch (e) {
@@ -102,10 +97,6 @@ class _WebServer {
             res.status(404).send()
           }
         })
-        this.express.use(
-          '/3rdparty',
-          express.static(path.join(__dirname, '..', '3rdparty'))
-        )
         this.server.listen(this.port, () => {
           console.info('WebServer is started with port:', this.port)
           resolve()

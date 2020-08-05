@@ -1,6 +1,8 @@
 # mirrorize
-3rdparty/*
-!3rdparty/install.sh
+components/
+client/clients
+!client/clients/default/*
+
 
 # SSL
 *.key
@@ -10,6 +12,12 @@
 *.csr.cnf
 *.ext
 *.srl
+
+# Fonts
+*.ttf
+*.woff
+*.woff2
+fonts.css
 
 # Logs
 logs

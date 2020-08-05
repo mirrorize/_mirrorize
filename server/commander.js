@@ -32,6 +32,7 @@ class _Commander {
               if (!description) description = ''
               var found
               while ((found = this.findCommand(command))) {
+                console.log(4)
                 var cString = found.command
                 var cNumber = Number(cString.slice(
                   cString.indexOf(originalCommand) + originalCommand.length
@@ -40,12 +41,14 @@ class _Commander {
               }
               var cObj = { command, callback, description, originalCommand, from }
               this.commands.push(cObj)
+              console.log(5)
             })
           } else {
             // console.log(component.registerCommand)
           }
           resolve()
         }
+        resolve()
       } catch (e) {
         reject(e)
       }

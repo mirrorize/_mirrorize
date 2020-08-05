@@ -24,7 +24,7 @@ class _WebSocket {
           ws.isAlive = false
           ws.ping()
         })
-      }, 30 * 1000)
+      }, 20 * 1000)
 
       this.wss = new WebSocket.Server({ server: this.server })
       this.wss.on('connection', (ws, req) => {

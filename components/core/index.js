@@ -6,4 +6,14 @@ module.exports = class extends ComponentClass {
       '/core/public/core.mjs'
     ]
   }
+
+  injectStyles () {
+    return [
+      '/core/misc/fonts/fonts.css'
+    ]
+  }
+
+  getStaticRoutes () {
+    return ['/misc']
+  }
 }

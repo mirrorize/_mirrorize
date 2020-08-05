@@ -3,7 +3,13 @@ const args = require('yargs').argv
 const configPath = (args.config) ? args.config : path.join(__dirname, '..', 'config.js')
 
 process.on('exit', (code) => {
+  console.trace(code)
   return console.log('Server is terminated with code ', code)
+})
+
+process.on('uncaughtException', function (err) {
+  console.error('UncaughtException')
+  console.error(err)
 })
 
 const _e = (error, callback = () => {}) => {
@@ -11,9 +17,9 @@ const _e = (error, callback = () => {}) => {
   callback(error)
 }
 
-var Config = {}
+var rawConfig = {}
 try {
-  Config = require(configPath)
+  rawConfig = require(configPath)
 } catch (e) {
   _e(e, () => {
     console.error('Fail to load configuration:', configPath)
@@ -21,8 +27,14 @@ try {
   })
 }
 
+var config = {}
+const { common, ...rest } = rawConfig
+for (const part of Object.keys(rest)) {
+  config[part] = Object.assign({}, common, rest[part])
+}
+
 var Server = require('./server.js')
-Server.init(Config)
+Server.init(config)
   .then(() => {
     Server.start()
   })

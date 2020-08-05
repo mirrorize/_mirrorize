@@ -6,7 +6,6 @@ class _Server {
       }
       // if (!config.commander) throw new Error('Invalid server configuration (commander)')
     }
-
     return new Promise((resolve, reject) => {
       try {
         checkConfig(config)
@@ -14,7 +13,6 @@ class _Server {
         reject(e)
         return
       }
-
       this.Components = require('./components.js')
       this.WebServer = require('./webserver.js')
       this.Commander = require('./commander.js')
@@ -25,10 +23,10 @@ class _Server {
         try {
           await this.WebServer.init(config.webserver)
           await this.WebSocket.init(this.WebServer.server)
-          await this.Components.init()
+          await this.Components.init(config.components)
           await this.Components.prepareClient()
           await this.Commander.init(config.commander)
-          await this.WebServer.bindComponent(this.Components.list())
+          await this.WebServer.bindComponent(this.Components)
           await this.Commander.registerComponentCommand(this.Components.list())
           await this.WebServer.start()
           await this.WebSocket.start(this.socketHandler.bind(this))

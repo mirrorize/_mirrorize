@@ -1,4 +1,4 @@
-/* global fetch  */
+/* global fetch MZ */
 import Socket from './_/socket.mjs'
 import CustomElement from './_/customelement.mjs'
 
@@ -36,12 +36,13 @@ class _MZ {
     this.customElements = []
     this.connectedElements = null
     this.styles = ['/_/common.css', '/_client/main.css']
-    this.messageSession = []
+
+    this.socket = new Socket(window.location.href)
 
     import('/_client/config.js').then((module) => {
       this.config = module.default
     }).catch((e) => {
-      console.log('????')
+      console.warn('There could be some issue on config.js')
       console.error(e)
     })
     this.start()
@@ -90,48 +91,79 @@ class _MZ {
     return this.storage[key][particle]
   }
 
-  start () {
-    this.socket = new Socket(this.clientUID, {
-      protocol: this.protocol,
-      address: this.address,
-      port: this.port
-    }, this.messageHandler.bind(this))
-    this.socket.connect(this.firstOpened.bind(this), this.onSocketConnected.bind(this))
+  getClientSocket (nsp) {
+    return this.socket.getClientSocket(nsp)
   }
 
-  onSocketConnected () {
-    if (this.isAlreadyPrepared) {
-      console.info('Socket is reconnected but initialization is finished so ignored.')
-      return false
+  start () {
+    const socketError = (err) => {
+      if (MZ.notify) {
+        MZ.notify({
+          title: '[SOCKET ERROR] ' + err.message,
+          type: 'error',
+          position: 'bottom right',
+          timer: 5000
+        })
+      }
+      console.warn(err.message)
     }
-    this.sendMessage({
-      message: {
-        key: 'SOCKET_OPENED',
-        payload: this.wsURL
-      }
-    }, (msg) => {
-      if (msg._reply && msg.original.key === 'SOCKET_OPENED') {
-        (async () => {
-          // await this.createCSP(this.injectedScripts) /* reserved */
-          await this.injectStyles(msg.message.styles)
-          await this.injectStyles(this.styles)
-          await this.injectScripts(msg.message.scripts)
-          await this.injectModules(msg.message.modules)
-          await this.loadCustomElements(msg.message.elements)
-          this.prepareTemplates()
-          this._isMZReady = true
-          console.info('MZ is ready.')
-          await this.doOnReadyJob()
-          await this.readyCustomElements()
-          this.sendMessage({
-            message: {
-              key: 'CLIENT_PREPARED'
-            }
-          }, () => {
-            this.isAlreadyPrepared = true
+
+    const mainSocket = this.getClientSocket()
+    mainSocket.on('connect', () => {
+      mainSocket.joinRoom('BROWSER')
+      mainSocket.joinRoom('BROWSER/NAME:' + this.clientName)
+      mainSocket.joinRoom('BROWSER/ID:' + this.clientUID)
+      mainSocket.onMessage(this.messageHandler)
+      mainSocket.sendMessage('SERVER', {
+        message: 'REQUEST_BROWSER_ASSETS',
+        clientUID: this.clientUID,
+        clientName: this.clientName
+      }, (ret) => {
+        if (!this.isAlreadyPrepared) {
+          this.prepareBrowser(ret).then(() => {
+            mainSocket.sendMessage('SERVER', {
+              message: 'BROWSER_PREPARED',
+              clientUID: this.clientUID,
+              clientName: this.clientName
+            })
           })
-        })()
-      }
+        }
+      })
+    })
+    mainSocket.on('disconnect', () => {
+      mainSocket.joinRoom('BROWSER')
+      mainSocket.joinRoom('BROWSER/NAME:' + this.clientName)
+      mainSocket.joinRoom('BROWSER/UID:' + this.clientUID)
+      socketError({ message: 'Disconnected' })
+    })
+    mainSocket.on('error', (err) => {
+      socketError(err)
+    })
+    mainSocket.on('connect_error', (err) => {
+      socketError(err)
+    })
+    mainSocket.on('TEST', (data) => {
+      console.log(data)
+    })
+  }
+
+  prepareBrowser (data) {
+    return new Promise((resolve, reject) => {
+      (async () => {
+        // await this.createCSP(this.injectedScripts) // reserved
+        await this.injectStyles(data.styles)
+        await this.injectStyles(this.styles)
+        await this.injectScripts(data.scripts)
+        await this.injectModules(data.modules)
+        await this.loadCustomElements(data.elements)
+        this.prepareTemplates()
+        this._isMZReady = true
+        console.info('MZ is ready.')
+        await this.doOnReadyJob()
+        await this.readyCustomElements()
+        this.isAlreadyPrepared = true
+        resolve()
+      })()
     })
   }
 
@@ -163,26 +195,6 @@ class _MZ {
     } else {
       this.isAlreadyConnected = true
       return false
-    }
-  }
-
-  messageHandler (msg) {
-    const { message, _element = null, _tagname = null, _MZ = null } = msg
-    if (!message) return
-    const { key, payload = null } = message
-    if (key === 'TO_CLIENT') {
-      var ces = [...document.querySelectorAll('[mzcustomelement]')]
-      var targets = []
-      if (_MZ) {
-        // for mirrorize client itself... will it be needed???
-      } else if (_element) {
-        targets = ces.filter((ce) => { return _element === ce.uid })
-      } else if (_tagname) {
-        targets = ces.filter((ce) => { return _tagname === ce.mzTagName })
-      }
-      targets.forEach((target, i) => {
-        if (typeof target.onMessage === 'function') target.onMessage(payload)
-      })
     }
   }
 
@@ -308,10 +320,10 @@ class _MZ {
           import(script).then((module) => {
             const { ...rest } = module
             for (const [key, value] of Object.entries(rest)) {
-              if (Object.prototype.hasOwnProperty.call(window.MZ, key)) {
+              if (Object.prototype.hasOwnProperty.call(MZ, key)) {
                 console.warn(`Identifier '${key}'' of module-script is already registered:`, script)
               } else {
-                window.MZ[key] = value
+                MZ[key] = value
               }
             }
             console.info('Module-Script loaded:', script)
@@ -345,8 +357,9 @@ class _MZ {
           console.info('CustomElement loaded:', name, url)
           resolve()
         }).catch((e) => {
-          console.warn(e)
+          // console.warn(e)
           console.warn('CustomElement loading failed:', name, url)
+          console.error(e)
           resolve()
         })
       })
@@ -390,6 +403,14 @@ class _MZ {
     return null
   }
 
+  getClientUID () {
+    return this.clientUID
+  }
+
+  getClientName () {
+    return this.clientName
+  }
+
   /* ???? */
   registerElement (el) {
     this.connectedElements[el.uid] = el.mzTagName
@@ -398,14 +419,6 @@ class _MZ {
   unregisterElement (el) {
     this.connectedElements[el.uid] = null
     delete this.connectedElements[el.uid]
-  }
-
-  sendMessage (message, callback) {
-    this.socket.sendMessage(message, callback)
-  }
-
-  getClientId () {
-    return this.config.id
   }
 
   isMZReady () {
@@ -424,8 +437,9 @@ window.MZ = {
   // getCustomElementOrigin: mz.getCustomElementOrigin.bind(mz),
   getStorage: mz.getStorage.bind(mz),
   setStorage: mz.setStorage.bind(mz),
-  sendMessage: mz.sendMessage.bind(mz),
-  getClientId: mz.getClientId.bind(mz)
+  getClientUID: mz.getClientUID.bind(mz),
+  getClientName: mz.getClientName.bind(mz),
+  getClientSocket: mz.getClientSocket.bind(mz)
 }
 export default mz
 

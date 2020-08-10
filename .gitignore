@@ -1,7 +1,7 @@
 # mirrorize
-components/
-client/clients
-!client/clients/default/*
+components/*
+client/clients/*
+!client/clients/default/
 
 
 # SSL

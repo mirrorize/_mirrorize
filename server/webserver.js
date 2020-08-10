@@ -6,7 +6,7 @@ const fs = require('fs')
 const path = require('path')
 
 class _WebServer {
-  init (_config) {
+  start (_config) {
     return new Promise((resolve, reject) => {
       try {
         this.config = _config
@@ -22,7 +22,7 @@ class _WebServer {
           }
         }))
         this.port = (_config.port) ? _config.port : '8080'
-        this.address = (_config.address) ? _config.address : '127.0.0.1'
+        this.address = (_config.address) ? _config.address : 'localhost'
         this.protocol = (_config.useSecure) ? 'https' : 'http'
         if (
           _config.expressExtraSetup &&
@@ -42,37 +42,6 @@ class _WebServer {
         } else {
           this.server = http.createServer(this.express)
         }
-        resolve()
-      } catch (e) {
-        console.error('Fail to initiate WebServer')
-        reject(e)
-      }
-    })
-  }
-
-  bindComponent (components) {
-    return new Promise((resolve, reject) => {
-      try {
-        for (const component of components.list()) {
-          var statics = components.getStaticRoutes(component)
-          if (Array.isArray(statics)) {
-            for (const { route, dir } of statics) {
-              this.express.use(route, express.static(dir))
-            }
-          }
-          var cb = component.webserve.bind(component)
-          this.express.all(component.url, cb)
-        }
-        resolve()
-      } catch (e) {
-        reject(e)
-      }
-    })
-  }
-
-  start () {
-    return new Promise((resolve, reject) => {
-      try {
         this.express.get('/', (req, res) => {
           var client = req.query.client || this.defaultClient
           req.session.key = client
@@ -97,10 +66,34 @@ class _WebServer {
             res.status(404).send()
           }
         })
-        this.server.listen(this.port, () => {
-          console.info('WebServer is started with port:', this.port)
-          resolve()
-        })
+        this.server.listen(this.port)
+        console.info('WebServer start listening:', this.port)
+        resolve()
+      } catch (e) {
+        console.error('Fail to initiate WebServer')
+        reject(e)
+      }
+    })
+  }
+
+  serverURL () {
+    return `${this.protocol}://${this.address}:${this.port}`
+  }
+
+  bindComponent (components) {
+    return new Promise((resolve, reject) => {
+      try {
+        for (const component of components.list()) {
+          var statics = components.getStaticRoutes(component)
+          if (Array.isArray(statics)) {
+            for (const { route, dir } of statics) {
+              this.express.use(route, express.static(dir))
+            }
+          }
+          var cb = component.webserve.bind(component)
+          this.express.all(component.url, cb)
+        }
+        resolve()
       } catch (e) {
         reject(e)
       }

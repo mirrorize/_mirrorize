@@ -1,6 +1,7 @@
 const path = require('path')
 const fs = require('fs')
-const Clients = require('./clients.js')
+// const Clients = require('./clients.js')
+const Socket = require('./socket.js')
 
 function _require (required) {
   try {
@@ -18,10 +19,15 @@ function _require (required) {
 }
 
 class _Components {
-  init (_config = {}) {
+  constructor () {
     this.components = []
+    this.messenger = null
+  }
+
+  init (_config = {}, messenger) {
     this.config = _config
     this.clientPrepares = null
+    this.messenger = messenger
     return new Promise((resolve, reject) => {
       (async () => {
         var list = await this.scanComponents()
@@ -40,69 +46,73 @@ class _Components {
     })
   }
 
+  getMessenger () {
+    return this.messenger
+  }
+
   loadComponent (name) {
     return new Promise((resolve, reject) => {
-      const dir = path.join(__dirname, '..', 'components', name)
-      const cPath = path.join(dir, 'index.js')
-      const configPath = path.join(dir, 'config.js')
-      var config = _require(configPath)
-      if (!config) {
-        console.warn(`Component '${name}' will be instanced without configuration.`)
-        config = {}
-      }
-
-      if (config.disabled) {
-        console.info(`Component '${name}' will not be loaded because 'disabled' is set.`)
-        reject(new Error('disabled:true'))
-        return
-      }
-      var Klass = _require(cPath)
-      if (!Klass) {
-        console.warn('Fails to find component:', name)
-        console.warn(Klass)
-        console.warn(`Component:${name} will not be loaded.`)
-        reject(Klass)
-        return
-      }
-      var component = new Klass(config)
-      if (component instanceof Error) {
-        console.warn('Fails to load component:', name)
-        console.warn(component.message)
-        console.info(`Component ${name} will not be loaded.`)
-        reject(component)
-      } else {
-        var id
-        if (config.id && !this.findById(config.id)) {
-          id = config.id
-        } else {
-          let i = 2
-          id = name
-          while (this.findById(id)) {
-            id = name + i++
-          }
+      try {
+        const dir = path.join(__dirname, '..', 'components', name)
+        const cPath = path.join(dir, 'index.js')
+        const configPath = path.join(dir, 'config.js')
+        var config = _require(configPath)
+        if (!config) {
+          console.warn(`Component '${name}' will be instanced without configuration.`)
+          config = {}
         }
-        Object.defineProperty(component, 'id', {
-          value: id,
-          writable: false
-        })
-        Object.defineProperty(component, 'name', {
-          value: name,
-          writable: false
-        })
-        Object.defineProperty(component, 'dir', {
-          value: dir,
-          writable: false
-        })
-        Object.defineProperty(component, 'url', {
-          value: '/' + name,
-          writable: false
-        })
-        component.onConstructed()
-        console.info(`Component '${name}' is constructed. (id:${id})`)
-        this.components.push(component)
-        component.onLoaded()
-        console.info(`Component '${name}' is loaded. (id:${id})`)
-        resolve()
+
+        if (config.disabled) {
+          console.info(`Component '${name}' will not be loaded because 'disabled' is set.`)
+          reject(new Error('disabled:true'))
+          return
+        }
+        var Klass = _require(cPath)
+        if (!Klass) {
+          console.warn('Fails to find component:', name)
+          console.warn(Klass)
+          console.warn(`Component:${name} will not be loaded.`)
+          reject(Klass)
+          return
+        }
+        var component = new Klass(config)
+        if (component instanceof Error) {
+          console.warn('Fails to load component:', name)
+          console.warn(component.message)
+          console.info(`Component ${name} will not be loaded.`)
+          reject(component)
+        } else {
+          Object.defineProperty(component, 'name', {
+            value: name,
+            writable: false
+          })
+          Object.defineProperty(component, 'dir', {
+            value: dir,
+            writable: false
+          })
+          Object.defineProperty(component, 'url', {
+            value: '/' + name,
+            writable: false
+          })
+          Socket.getClientMessenger('/').then((messenger) => {
+            component.messenger = messenger
+            component.messenger.joinRoom('COMPONENT')
+            component.messenger.joinRoom(`COMPONENT(NAME:${name})`)
+            component.messenger.onMessage(component.onMessage.bind(component))
+            this.components.push(component)
+            component.onConstructed()
+            console.info(`Component '${name}' is constructed.`)
+            resolve()
+          }).catch((e) => {
+            console.error(e)
+            console.info('Fail to load component:', name)
+            reject(e)
+          })
+        }
+      } catch (e) {
+        console.warn('Fail to load components.')
+        console.error(e)
+        reject(e)
       }
     })
   }
@@ -158,19 +168,20 @@ class _Components {
     return this.components
   }
 
+  /*
   findById (id) {
     return this.components.find((c) => {
       return (c.id === id)
     })
   }
-
+  */
   start () {
+    console.log('Components start')
     return new Promise((resolve) => {
-      var promises = []
-      this.components.forEach((component, i) => {
-        promises.push(component.start())
-      })
-      Promise.allSettled(promises).then(resolve)
+      for (const component of this.components) {
+        component.start()
+      }
+      resolve()
     })
   }
 
@@ -186,9 +197,9 @@ class _Components {
     })
   }
 
-  listId () {
+  listName () {
     var r = this.components.map((component) => {
-      return component.id
+      return component.name
     })
     return r
   }
@@ -219,19 +230,19 @@ class _Components {
                 name: e,
                 path: path.join(component.dir, 'elements', file),
                 url: component.url + '/elements/' + file,
-                origin: component.id,
+                origin: component.name,
                 config: (el && el.config) ? el.config : null,
                 template: (el && el.template) ? el.template : null,
                 _config: (el) || null
               })
               resolve()
             } else {
-              console.warn(`Custom Element '${component.id}.${e}' seems duplicated. It will be ignored.'`)
+              console.warn(`Custom Element '${component.name}.${e}' seems duplicated. It will be ignored.'`)
             }
           }
         } catch (e) {
           // console.warn(e.message)
-          console.info(`Component '${component.id}' has no custom element`)
+          console.info(`Component '${component.name}' has no custom element`)
           resolve()
         }
       })
@@ -280,7 +291,7 @@ class _Components {
           })) {
             is.push(s)
           } else {
-            console.warn(`${message} to inject '${s}' of '${component.id}' seems duplicated. It will be ignored.'`)
+            console.warn(`${message} to inject '${s}' of '${component.name}' seems duplicated. It will be ignored.'`)
           }
         }
       }
@@ -288,11 +299,11 @@ class _Components {
     return is
   }
 
-  onClientReady (clientId) {
+  onClientReady (clientName) {
     return new Promise((resolve) => {
       var promises = []
       this.components.forEach((component, i) => {
-        promises.push(component.onClientReady(clientId))
+        promises.push(component.onClientReady(clientName))
       })
       Promise.allSettled(promises).then(resolve)
     })
@@ -321,6 +332,7 @@ class _Components {
     return this.clientPrepares
   }
 
+  /*
   messageToComponent (mObj) {
     return new Promise((resolve, reject) => {
       mObj.message = mObj.message.payload
@@ -332,17 +344,21 @@ class _Components {
       }
     })
   }
+  */
 
   export () {
     return {
-      listComponents: () => { return this.list() },
-      listComponentId: () => { return this.listId() },
-      findComponentById: (id) => { return this.findById(id) },
+      // getMessenger: this.getMessenger.bind(this),
+      listComponents: this.list.bind(this),
+      listComponentName: this.listName.bind(this)
+      // findComponentById: this.findById.bind(this)
+      /*
       broadcastComponentMessage: (message) => {},
       sendComponentMessage: (targetModule, message) => {},
       sendMessageToClient: (from, to, message) => {
         Clients.sendMessageToClient(from, to, message)
       }
+      */
     }
   }
 }

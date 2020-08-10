@@ -21,23 +21,22 @@ class ComponentClass {
 
   onConstructed () {}
 
-  onLoaded () {}
+  // onLoaded () {}
 
-  onClientReady (clientId) {}
-
-  start () {
+  onClientReady (clientUID, clientName) {
+    /*
     return new Promise((resolve, reject) => {
-      try {
-        this.onReady()
-        resolve()
-      } catch (e) {
-        console.error(e)
-        reject(e)
-      }
+      resolve()
     })
+    */
+    return true
   }
 
-  onReady () {}
+  start () {
+    this.onStart()
+  }
+
+  onStart () {}
 
   injectScripts () { return [] }
   injectStyles () { return [] }
@@ -53,23 +52,18 @@ class ComponentClass {
     res.status(404).send('No response.')
   }
 
+  sendMessage (toPath, msgObj, callback) {
+    this.messenger.sendMessage(toPath, msgObj, callback)
+  }
+
+  onMessage (msgObj, reply = () => {}) {
+    console.info(`${this.name} got message but it will be ignored.`)
+    reply(false)
+  }
+
   getHelper () { // ????
     return this.helper
   }
-
-  onClientMessage (message) {
-    console.log(`Component ${this.id} is received message from client.`)
-    return 'SUCCESS'
-  }
-
-  sendMessageToClient (to, message) {
-    var from = {
-      _component: this.id
-    }
-    Helper.sendMessageToClient(from, to, message)
-  }
-
-  sendMessage () {}
 
   /* ? */
 

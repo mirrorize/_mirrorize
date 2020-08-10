@@ -65,6 +65,11 @@ export default class extends CustomElement {
     return defTemplate
   }
 
+  get socketable () {
+    return true
+  }
+
+
   onReady () {
     this.setAttribute('exportparts', 'mz-notify-item, mz-notify-item-icon, mz-notify-item-title, mz-notify-item-content')
     this.default = {
@@ -117,6 +122,13 @@ export default class extends CustomElement {
       ob.disconnect()
     }
     this.observers = []
+  }
+
+  onMessage (data, reply) {
+    console.log(data)
+    if (typeof reply === 'function') {
+      reply('ok')
+    }
   }
 
   notify (obj) {

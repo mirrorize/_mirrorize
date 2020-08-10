@@ -34,9 +34,9 @@ for (const part of Object.keys(rest)) {
 }
 
 var Server = require('./server.js')
-Server.init(config)
+Server.start(config)
   .then(() => {
-    Server.start()
+    console.info('Server starts.')
   })
   .catch((r) => {
     _e(r, () => {

@@ -10,22 +10,30 @@ const template = `
 #container {
   display: block;
   width: fit-content;
-  color: black;
-  margin: 15px 15px;
   position:relative;
-  border-radius: 10px;
   font-size: 0.5em;
-  color: black;
-  padding: 10px;
+  color: #CCC;
+  padding: 10px 20px;
   overflow: hidden;
   box-shadow: 5px 5px 5px 5px rgba(0,0,0,0.5);
-  font-family: "Courier New";
+}
+
+.top {
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
+.bottom {
+  margin-bottom: 10px;
+  margin-top: 0;
 }
 .right {
+  margin-right:0;
   transform: translateX(100%);
 }
 
 .left {
+  margin-left:0;
   transform: translateX(-100%);
 }
 
@@ -45,6 +53,7 @@ const template = `
   font-weight: bold;
   display:inline-block;
   font-size: 1.2em;
+  color: #FFF;
 }
 .icon {
   display: inline-block;

@@ -29,15 +29,14 @@ class _MZ {
     this._isMZReady = false
     this.isAlreadyConnected = false
     this.isAlreadyPrepared = false
-    this.storage = {}
+    this.storage = new Map()
     this.injectedScripts = null
     this.injectedStyles = null
     this.injectedModules = null
     this.customElements = []
     this.connectedElements = null
     this.styles = ['/_/common.css', '/_client/main.css']
-
-    this.socket = new Socket(window.location.href)
+    this.socket = new Socket()
 
     import('/_client/config.js').then((module) => {
       this.config = module.default
@@ -78,50 +77,69 @@ class _MZ {
     return this.config
   }
 
-  setStorage (key, particle, data) {
-    if (!Object.prototype.hasOwnProperty.call(this.storage, key)) {
-      this.storage[key] = {}
-    }
-    this.storage[key][particle] = data
+  setStorage (key, data) {
+    this.storage.set(key, data)
   }
 
-  getStorage (key, particle) {
-    if (!Object.prototype.hasOwnProperty.call(this.storage, key)) return null
-    if (!Object.prototype.hasOwnProperty.call(this.storage[key], particle)) return null
-    return this.storage[key][particle]
+  getStorage (key) {
+    return this.storage.get(key)
   }
 
+  /*
   getClientSocket (nsp) {
     return this.socket.getClientSocket(nsp)
   }
+  */
 
   start () {
-    const socketError = (err) => {
+    console.info('Client starts.', this.clientName, this.clientUID)
+    const socketNotify = (type, msg) => {
       if (MZ.notify) {
         MZ.notify({
-          title: '[SOCKET ERROR] ' + err.message,
-          type: 'error',
+          title: '[SOCKET] ' + msg.message,
+          type: type,
           position: 'bottom right',
           timer: 5000
         })
       }
-      console.warn(err.message)
+      console.warn(type, msg.message)
     }
-
-    const mainSocket = this.getClientSocket()
-    mainSocket.on('connect', () => {
-      mainSocket.joinRoom('BROWSER')
-      mainSocket.joinRoom('BROWSER/NAME:' + this.clientName)
-      mainSocket.joinRoom('BROWSER/ID:' + this.clientUID)
-      mainSocket.onMessage(this.messageHandler)
-      mainSocket.sendMessage('SERVER', {
+    const on = {
+      disconnect: function () {
+        this.leaveRoom('CLIENT')
+        this.leaveRoom(`CLIENT(UID:${this.clientUID})`)
+        this.leaveRoom(`CLIENT(NAME:${this.clientName})`)
+        socketNotify('error', { message: 'Disconnected from Server.' })
+      },
+      error: function (error) {
+        socketNotify('error', error)
+      },
+      connect_error: function (error) {
+        if (error.message === 'xhr poll error') error.message = 'Retry connection, but failed'
+        socketNotify('error', error)
+      },
+      reconnect: function () {
+        socketNotify('info', { message: 'Reconnected to Server.' })
+      }
+    }
+    this.socket.getClientMessenger('/', on).then((messenger) => {
+      this.messenger = messenger
+      messenger.registerClient(this.clientUID)
+      messenger.joinRoom('CLIENT')
+      messenger.joinRoom(`CLIENT(UID:${this.clientUID})`)
+      messenger.joinRoom(`CLIENT(NAME:${this.clientName})`)
+      messenger.onMessage(this.messageHandler.bind(this))
+      messenger.socket.on('_DATA', (key, data) => {
+        this.storage.set(key, data)
+      })
+      messenger.sendMessage('SERVER', {
         message: 'REQUEST_BROWSER_ASSETS',
         clientUID: this.clientUID,
         clientName: this.clientName
       }, (ret) => {
         if (!this.isAlreadyPrepared) {
           this.prepareBrowser(ret).then(() => {
-            mainSocket.sendMessage('SERVER', {
+            messenger.sendMessage('SERVER', {
               message: 'BROWSER_PREPARED',
               clientUID: this.clientUID,
               clientName: this.clientName
@@ -130,22 +148,9 @@ class _MZ {
         }
       })
     })
-    mainSocket.on('disconnect', () => {
-      mainSocket.joinRoom('BROWSER')
-      mainSocket.joinRoom('BROWSER/NAME:' + this.clientName)
-      mainSocket.joinRoom('BROWSER/UID:' + this.clientUID)
-      socketError({ message: 'Disconnected' })
-    })
-    mainSocket.on('error', (err) => {
-      socketError(err)
-    })
-    mainSocket.on('connect_error', (err) => {
-      socketError(err)
-    })
-    mainSocket.on('TEST', (data) => {
-      console.log(data)
-    })
   }
+
+  messageHandler (msgObj, fn) {}
 
   prepareBrowser (data) {
     return new Promise((resolve, reject) => {
@@ -382,14 +387,6 @@ class _MZ {
     })
   }
 
-  getCustomElementOrigin (name) {
-    var r = this.customElements.find((ce) => {
-      return ce.name === name
-    })
-    if (r) return r.origin
-    return null
-  }
-
   getCustomElementDefinition (name) {
     return this.customElements.find((ce) => {
       return ce.name === name
@@ -431,36 +428,11 @@ window.MZ = {
   registerOnReadyJob: mz.registerOnReadyJob.bind(mz),
   getTemplate: mz.getTemplate.bind(mz),
   getCustomConfig: mz.getCustomConfig.bind(mz),
-  getConfig: mz.getConfig.bind(mz),
   isMZReady: mz.isMZReady.bind(mz),
   getCustomElementDefinition: mz.getCustomElementDefinition.bind(mz),
-  // getCustomElementOrigin: mz.getCustomElementOrigin.bind(mz),
   getStorage: mz.getStorage.bind(mz),
   setStorage: mz.setStorage.bind(mz),
   getClientUID: mz.getClientUID.bind(mz),
-  getClientName: mz.getClientName.bind(mz),
-  getClientSocket: mz.getClientSocket.bind(mz)
+  getClientName: mz.getClientName.bind(mz)
 }
 export default mz
-
-/*
-let reviver = (key, value) => {
-  if (typeof value === 'string' && value.indexOf('__FUNC__') === 0) {
-    value = value.slice(8)
-    let functionTemplate = `(${value})`
-    return eval(functionTemplate)
-  }
-  return value
-}
-var p = JSON.parse(payload, reviver)
-// ---
-
-let replacer = (key, value) => {
-  if (typeof value == "function") {
-    return "__FUNC__" + value.toString()
-  }
-  return value
-}
-
-JSON.stringify(p, replacer, 2)
-*/

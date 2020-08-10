@@ -1,4 +1,4 @@
-const Helper = require('./components.js').export()
+// const Helper = require('./components.js').export()
 
 class ComponentClass {
   constructor (_config) {
@@ -24,16 +24,11 @@ class ComponentClass {
   // onLoaded () {}
 
   onClientReady (clientUID, clientName) {
-    /*
-    return new Promise((resolve, reject) => {
-      resolve()
-    })
-    */
     return true
   }
 
-  start () {
-    this.onStart()
+  onClientDisconnected (clientUID, clientName) {
+    return true
   }
 
   onStart () {}
@@ -46,33 +41,32 @@ class ComponentClass {
     this.onRequested(req, res)
   }
 
-  getStaticRoutes () { return [] } // return array of string or array object{route, path}
+  staticRoutes () { return [] } // return array of string or array object{route, path}
 
   onRequested (req, res) {
     res.status(404).send('No response.')
+  }
+
+  onMessage (element, msgObj, reply = () => {}) {
+    console.info(`${this.name} got message but it will be ignored.`)
+    reply(false)
   }
 
   sendMessage (toPath, msgObj, callback) {
     this.messenger.sendMessage(toPath, msgObj, callback)
   }
 
-  onMessage (msgObj, reply = () => {}) {
-    console.info(`${this.name} got message but it will be ignored.`)
-    reply(false)
+  transportData (client, key, data) {
+    // transport data to client
+    this.messenger.transportData(client, key, data)
   }
 
-  getHelper () { // ????
-    return this.helper
+  start () {
+    this.onStart()
   }
-
-  /* ? */
 
   registerCommand () {
     return []
-  }
-
-  loadElement () {
-
   }
 }
 

@@ -125,25 +125,13 @@ export default class extends CustomElement {
   }
 
   onMessage (data, reply) {
-    console.log(data)
-    if (typeof reply === 'function') {
-      reply('ok')
+    if (data.message === 'NOTIFY') {
+      this.notify(data.payload)
+      if (typeof reply === 'function') reply(true)
     }
   }
 
   notify (obj) {
-    /*
-    {
-      timer,
-      type,
-      position,
-      icon,
-      title,
-      content,
-      callback,
-      styleOverride
-    }
-    */
     var dom = this.contentDom
     var n = document.createElement('mz-notify-item')
     n.dataset.timer = (obj.timer) ? obj.timer : this.default.timer
@@ -162,6 +150,6 @@ export default class extends CustomElement {
     var pos = '.' + n.dataset.position.replace(' ', '.')
     var query = `.notify .container${pos}`
     dom.querySelector(query).appendChild(n)
-    if (MZ.flushIconify) MZ.flushIconify(n)
+    if (MZ.flushIconify) MZ.flushIconify(dom)
   }
 }

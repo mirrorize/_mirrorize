@@ -2,32 +2,6 @@ const ClientIO = require('socket.io-client')
 const ServerIO = require('socket.io')
 const Messenger = require('./messenger.js')
 
-const behaviors = {
-  /*
-  sendMessage: function (to, msgObj, callback) {
-    console.log('sending', to, msgObj)
-    this.emit('TO', to, msgObj, callback)
-  },
-
-  onMessage: function (handler) {
-    this.on('_MESSAGE', (data, callback) => {
-      handler(data, callback)
-    })
-  },
-  */
-
-  joinRoom: function (room) {
-    console.log('so-join', room, this.id)
-    // this.join(room)
-    this.emit('JOIN_ROOM', room)
-  },
-
-  leaveRoom: function (room) {
-    // this.leave(room)
-    this.emit('LEAVE_ROOM', room)
-  }
-}
-
 class _Socket {
   constructor () {
     this.namespaces = new Set()
@@ -51,11 +25,6 @@ class _Socket {
         socket.on('connect', () => {
           resolve(socket)
         })
-        for (const method of Object.keys(behaviors)) {
-          if (!Object.prototype.hasOwnProperty.call(socket, method)) {
-            socket[method] = behaviors[method].bind(socket)
-          }
-        }
       } else {
         reject(new Error('Fail to create socket:', ns))
       }
@@ -74,7 +43,6 @@ class _Socket {
   }
 
   initNamespace (name, nspManager = () => {}) {
-    console.log('initNamespace')
     var ns = this._regulateNSP(name)
     if (!ns) {
       console.warn(`'${name}' is not valid as a namespace of 'socket.io'. This registration will be ignored.`)
@@ -84,22 +52,38 @@ class _Socket {
     if (!this.namespaces.has(nsp)) {
       nsp.on('connect', (socket) => {
         // nspManager(socket)
+        var isClient = null
+        socket.on('IM_CLIENT', (clientUID) => {
+          console.log('Client registered.', clientUID)
+          isClient = clientUID
+        })
+        socket.on('disconnect', () => {
+          console.log('Socket is disconnected')
+          console.log(isClient)
+          nsp.to('SERVER').emit('_MESSAGE', {
+            message: 'CLIENT_DISCONNECTED',
+            clientUID: isClient
+          })
+          // do something when Client is disconnected
+          // How to know this socket is client???
+        })
         socket.on('JOIN_ROOM', (room) => {
           socket.join(room)
         })
         socket.on('LEAVE_ROOM', (room) => {
           socket.leave(room)
         })
-        socket.on('_TO', (msgObj, fn) => {
-          const {
-            _to = null,
-            _msgObj = null
-          } = msgObj
+        socket.on('_DATA', (to, key, data) => {
+          const room = to.room
+          if (!room) return
+          nsp.to(room).emit('_DATA', key, data)
+        })
+        socket.on('_TO', (to, msgObj, fn) => {
           const {
             room = null,
             element = null
-          } = _to
-          if (!room || !_msgObj) {
+          } = to
+          if (!room || !msgObj) {
             if (typeof fn === 'function') fn(false)
             return
           }
@@ -107,9 +91,8 @@ class _Socket {
             if (error) throw error
             for (const member of clients) {
               var socket = nsp.sockets[member]
-              msgObj = {
-                _msgObj,
-                _element: element
+              if (element) {
+                msgObj._element = element
               }
               socket.emit('_MESSAGE', msgObj, fn)
             }
@@ -125,13 +108,6 @@ class _Socket {
     if (typeof ns !== 'string') return false
     if (ns.indexOf('/') !== 0) ns = '/' + ns
     return ns
-  }
-
-  bindComponent (Components) {
-    for (const component of Components.list()) {
-      var socket = this.getClientSocket()
-      component.setSocket(socket)
-    }
   }
 }
 

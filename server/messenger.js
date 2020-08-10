@@ -3,6 +3,14 @@ class Messenger {
     this.socket = socket
   }
 
+  transportData (to, key, data) {
+    const parsed = this.parse(to)
+    if (parsed instanceof Error) {
+      throw parsed
+    }
+    this.socket.emit('_DATA', parsed, key, data)
+  }
+
   sendMessage (to, msgObj, callback) {
     return new Promise((resolve, reject) => {
       const parsed = this.parse(to)
@@ -10,10 +18,7 @@ class Messenger {
         callback(parsed)
         reject(parsed)
       }
-      this.socket.emit('_TO', {
-        _to: parsed,
-        _msgObj: msgObj
-      }, callback)
+      this.socket.emit('_TO', parsed, msgObj, callback)
       resolve()
     })
   }

@@ -52,10 +52,6 @@ class CustomElement extends HTMLElement {
     return null
   }
 
-  get socketable () {
-    return false
-  }
-
   // false : you need to draw initial content with .defaultContent() or render by yourself sometime.
   get templateCustomizable () {
     return true
@@ -65,7 +61,7 @@ class CustomElement extends HTMLElement {
     super()
     this.displayLock = new Set()
     Object.defineProperty(this, 'uid', {
-      value: uids++,
+      value: 'MZ_' + uids++,
       writable: false
     })
     Object.defineProperty(this, 'mzTagName', {
@@ -163,34 +159,6 @@ class CustomElement extends HTMLElement {
         value: true,
         writable: false
       })
-      if (this.socketable) {
-        var clientUID = MZ.getClientUID
-        var clientName = MZ.getClientName
-        this.socket = MZ.getClientSocket()
-        this.socket.on('connect', () => {
-          this.socket.joinRoom('ELEMENT/TAG:' + this.mzTagName)
-          this.socket.joinRoom('ELEMENT/UID:' + this.uid)
-          this.socket.joinRoom('ELEMENT')
-          this.socket.joinRoom('BROWSER/NAME:' + clientName + '/ELEMENT')
-          this.socket.joinRoom('BROWSER/UID:' + clientUID + '/ELEMENT')
-          this.socket.joinRoom('BROWSER/NAME:' + clientName + '/ELEMENT/TAG:' + this.mzTagName)
-          this.socket.joinRoom('BROWSER/UID:' + clientUID + '/ELEMENT/TAG:' + this.mzTagName)
-          this.socket.joinRoom('BROWSER/NAME:' + clientName + '/ELEMENT/UID:' + this.uid)
-          this.socket.joinRoom('BROWSER/UID:' + clientUID + '/ELEMENT/UID:' + this.uid)
-          this.socket.onMessage(this.onMessage.bind(this))
-        })
-        this.socket.on('disconnect', () => {
-          this.socket.leaveRoom('ELEMENT/TAG:' + this.mzTagName)
-          this.socket.leaveRoom('ELEMENT/UID:' + this.uid)
-          this.socket.leaveRoom('ELEMENT')
-          this.socket.leaveRoom('BROWSER/NAME:' + clientName + '/ELEMENT')
-          this.socket.leaveRoom('BROWSER/UID:' + clientUID + '/ELEMENT')
-          this.socket.leaveRoom('BROWSER/NAME:' + clientName + '/ELEMENT/TAG:' + this.mzTagName)
-          this.socket.leaveRoom('BROWSER/UID:' + clientUID + '/ELEMENT/TAG:' + this.mzTagName)
-          this.socket.leaveRoom('BROWSER/NAME:' + clientName + '/ELEMENT/UID:' + this.uid)
-          this.socket.leaveRoom('BROWSER/UID:' + clientUID + '/ELEMENT/UID:' + this.uid)
-        })
-      }
       this.onReady()
     }
   }
@@ -350,8 +318,6 @@ class CustomElement extends HTMLElement {
     }
     this.sendMessage(msg, callback, bindTo)
   }
-
-
 }
 
 export default CustomElement

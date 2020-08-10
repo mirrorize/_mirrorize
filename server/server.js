@@ -1,5 +1,3 @@
-// const io = require('socket.io-client')
-const Messenger = require('./messenger.js')
 
 class _Server {
   start (config) {
@@ -33,9 +31,7 @@ class _Server {
           await this.Components.prepareClient()
           await this.Commander.init(config.commander)
           await this.WebServer.bindComponent(this.Components)
-          // await this.Socket.bindComponent(this.Components)
           await this.Commander.registerComponentCommand(this.Components.list())
-          // await this.WebSocket.start(this.socketHandler.bind(this))
           await this.Components.start()
           resolve()
         } catch (e) {
@@ -52,8 +48,8 @@ class _Server {
       this.Socket.getClientMessenger('/').then((messenger) => {
         this.messenger = messenger
         this.messenger.joinRoom('SERVER')
+        this.messenger.onMessage(this.messageHandler.bind(this))
       })
-      // this.selfSocket.onMessage(this.messageHandler.bind(this))
       resolve()
     })
     var timer = new Promise((resolve, reject) => {
@@ -76,48 +72,12 @@ class _Server {
         reply(this.Components.getClientFeed())
         break
       case 'BROWSER_PREPARED':
-        var { clientUID, clientName } = msgObj
-        this.Components.onClientReady(clientUID, clientName)
+        this.Components.onClientReady(msgObj)
+        break
+      case 'CLIENT_DISCONNECTED':
+        this.Components.onClientDisconnected(msgObj)
         break
     }
-  }
-
-  socketHandler (socket) {
-    socket.on('connect', () => {
-      console.log('something is connected to Server')
-    })
-    socket.on('disconnect', () => {
-      console.log('something is disconnected from Server')
-    })
-    socket.on('_MESSAGE', (data, callback = () => {}) => {
-      console.log(this.config)
-      console.log(data)
-    })
-  }
-
-  _socketHandler (obj, ws) {
-    return new Promise((resolve, reject) => {
-      const { message, _client } = obj
-      switch (message.key) {
-        case 'TO_COMPONENT':
-          this.Components.messageToComponent(obj).then(resolve).catch(reject)
-          break
-        case 'SOCKET_OPENED':
-          var client = this.Clients.register(_client, ws)
-          if (client) {
-            resolve(this.Components.getClientFeed())
-          } else {
-            reject(new Error('CLIENT_REGISTER_FAIL'))
-          }
-          break
-        case 'CLIENT_PREPARED':
-          this.Components.onClientReady(_client).then(resolve).catch(reject)
-          break
-        default:
-          reject(new Error('UNDEFINED_KEY'))
-          break
-      }
-    })
   }
 }
 

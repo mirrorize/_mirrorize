@@ -134,9 +134,9 @@ class _Components {
     })
   }
 
-  getStaticRoutes (component) {
+  staticRoutes (component) {
     var ret = []
-    var list = component.getStaticRoutes()
+    var list = component.staticRoutes()
     if (!Array.isArray(list)) list = []
     list.push('public')
     list.push('elements')
@@ -299,11 +299,21 @@ class _Components {
     return is
   }
 
-  onClientReady (clientName) {
+  onClientReady ({ clientUID, clientName }) {
     return new Promise((resolve) => {
       var promises = []
       this.components.forEach((component, i) => {
-        promises.push(component.onClientReady(clientName))
+        promises.push(component.onClientReady(clientUID, clientName))
+      })
+      Promise.allSettled(promises).then(resolve)
+    })
+  }
+
+  onClientDisconnected ({ clientUID, clientName }) {
+    return new Promise((resolve) => {
+      var promises = []
+      this.components.forEach((component, i) => {
+        promises.push(component.onClientDisconnected(clientUID, clientName))
       })
       Promise.allSettled(promises).then(resolve)
     })

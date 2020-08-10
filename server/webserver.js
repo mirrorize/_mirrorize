@@ -84,7 +84,7 @@ class _WebServer {
     return new Promise((resolve, reject) => {
       try {
         for (const component of components.list()) {
-          var statics = components.getStaticRoutes(component)
+          var statics = components.staticRoutes(component)
           if (Array.isArray(statics)) {
             for (const { route, dir } of statics) {
               this.express.use(route, express.static(dir))

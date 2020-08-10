@@ -8,14 +8,21 @@ const template = `
   width: fit-content;
 }
 #container {
-  display: block;
+  display: grid;
   width: fit-content;
   position:relative;
   font-size: 0.5em;
   color: #CCC;
-  padding: 10px 20px;
+  padding: 10px;
+  padding-right: 20px;
   overflow: hidden;
   box-shadow: 5px 5px 5px 5px rgba(0,0,0,0.5);
+  grid-template-columns: minmax(0, auto) minmax(120px, auto);
+  grid-template-rows: minmax(0, auto) minmax(0, auto);
+  grid-template-areas:
+    "icon title"
+    "icon content";
+  grid-gap: 10px;
 }
 
 .top {
@@ -38,26 +45,35 @@ const template = `
 }
 
 .log {
-  background-color: #33F;
+  background-color: #339;
 }
 .info {
-  background-color: #3F3;
+  background-color: #393;
 }
 .warn {
-  background-color: #FF3;
+  background-color: #993;
 }
 .error {
-  background-color: #F33;
+  background-color: #933;
 }
 .title {
   font-weight: bold;
-  display:inline-block;
+  display:block;
   font-size: 1.2em;
   color: #FFF;
+  grid-area: title;
+}
+.content {
+  grid-area: content;
+  background-color:#999;
+
 }
 .icon {
-  display: inline-block;
-  font-size: 1.2em;
+  display: block;
+  font-size: 30px;
+  grid-area: icon;
+  color: #FFF;
+  margin: auto;
 }
 </style>
 <div id="container" class="container" part="mz-notify-item">

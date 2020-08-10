@@ -16,6 +16,11 @@ export default class extends CustomElement {
     return '<style>:host{ display: block; } </style><div>This is default</div>'
   }
 
+  onMessage (msgObj, reply) {
+    console.log('test got message', msgObj, reply)
+    reply('test done!')
+  }
+
   onReady () {
     if (MZ.flushIconify) MZ.flushIconify()
     this.hide(null, {

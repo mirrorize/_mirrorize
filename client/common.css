@@ -5,7 +5,7 @@
   --font-display: 'Abril Fatface', cursive;
   --font-handwriting: 'Sacramento', cursive;
   --font-mono: 'Ubuntu Mono', monospace;
-  --font-default: var(--font-display);
+  --font-default: var(--font-sans);
 
   --font-size-base: 1vw;
   --line-height: 100%;

@@ -13,40 +13,42 @@ module.exports = class extends ComponentClass {
     ]
   }
 
-  getStaticRoutes () {
+  staticRoutes () {
     return ['/misc']
   }
 
   onStart () {
+    /*
     this.sendMessage('COMPONENT', { foo: 1 }, (ret) => {
       console.log('msg replied:', ret)
     })
     this.sendMessage('COMPONENT(NAME:core)', { foo: 2 }, (ret) => {
       console.log('msg replied:', ret)
     })
+    */
   }
 
   onMessage (msgObj, reply) {
-    console.log('Core get!', msgObj)
     reply({
       replied: true,
       payload: msgObj
     })
   }
+
+  onClientReady (clientUID, clientName) {
+    setTimeout(() => {
+      this.transportData(`CLIENT(UID:${clientUID})`, 'OOPS', clientName)
+      this.sendMessage(`CLIENT(UID:${clientUID})/ELEMENT(NAME:mz-notify)`, {
+        message: 'NOTIFY',
+        payload: {
+          type: 'log',
+          title: 'Message from Server',
+          content: `Hello, Client ${clientName}!<br>Glad to meet you.`,
+          icon: `<span class="iconify" data-icon="gridicons:comment"></span>`,
+          timer: 1000000,
+          position: 'bottom right'
+        }
+      })
+    }, 3000)
+  }
 }
-
-// to = {
-//
-// }
-
-
-
-// SERVER
-// COMPONENT:*
-// COMPONENT:core
-// BROWSERUID:*
-// BROWSERUID: default_12345
-// BROWSERNAME:*
-// BROWSERUID: default
-// BROWSERX/ELEMENT:*
-// BROWSERX/ELEMENTTAG:

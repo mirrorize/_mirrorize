@@ -6,4 +6,6 @@ MZ.registerOnReadyJob(() => {
   body.appendChild(notify)
 })
 
+console.log(moment)
+
 export { isCoreLoaded }

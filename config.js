@@ -12,7 +12,7 @@ var config = {
     port: '8080', // Your port
     expressExtraSetup: (expressApp) => {} // If you need additional setup of express.js. For example proxy setup.
     // expressExtraSetup: (app) => { app.set('trust proxy', 'loopback, 123.123.123.123') }
-  },
+  }
 }
 
 if (typeof module !== 'undefined') module.exports = config

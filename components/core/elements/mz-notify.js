@@ -150,6 +150,6 @@ export default class extends CustomElement {
     var pos = '.' + n.dataset.position.replace(' ', '.')
     var query = `.notify .container${pos}`
     dom.querySelector(query).appendChild(n)
-    if (MZ.flushIconify) MZ.flushIconify(dom)
+    if (MZ.applyIcon) MZ.applyIcon(dom)
   }
 }

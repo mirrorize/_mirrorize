@@ -49,7 +49,6 @@ class Messenger {
 
   onMessage (handler = (msgObj, reply) => {}) {
     this.socket.on('_MESSAGE', (msgObj, cb) => {
-      console.log(msgObj)
       if (msgObj._element) {
         this.virtualOnMessage(msgObj._element, msgObj, cb)
       } else {
@@ -67,7 +66,6 @@ class Messenger {
     } else if (element.type === 'UID') {
       targets = document.querySelectorAll(`#${element.value}`)
     }
-    console.log(targets)
     if (!targets) {
       reply(false)
       return false

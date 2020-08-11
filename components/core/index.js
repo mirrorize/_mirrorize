@@ -18,14 +18,8 @@ module.exports = class extends ComponentClass {
   }
 
   onStart () {
-    /*
-    this.sendMessage('COMPONENT', { foo: 1 }, (ret) => {
-      console.log('msg replied:', ret)
-    })
-    this.sendMessage('COMPONENT(NAME:core)', { foo: 2 }, (ret) => {
-      console.log('msg replied:', ret)
-    })
-    */
+    if (this.config.locale) moment.locale(this.config.locale)
+    if (this.config.timezone) moment.tz.setDefault(this.config.timezone)
   }
 
   onMessage (msgObj, reply) {
@@ -50,5 +44,9 @@ module.exports = class extends ComponentClass {
         }
       })
     }, 3000)
+  }
+
+  onClientDisconnected (clientUID, clientName) {
+    console.log('Disconnected')
   }
 }

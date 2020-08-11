@@ -10,6 +10,9 @@ module.exports = {
     },
     fontSubset: [] // ex: ['cyrillic']
   },
-  config: {},
+  config: {
+    locale: 'en-US',
+    timezone: 'Europe/Berlin'
+  },
   elements: {}
 }

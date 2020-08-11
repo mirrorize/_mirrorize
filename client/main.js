@@ -150,6 +150,15 @@ class _MZ {
     })
   }
 
+  sendMessage (to, msgObj, reply) {
+    if (!this.messenger) {
+      console.warn('Messenger is not yet prepared.')
+      if (typeof reply === 'function') reply(false)
+      return false
+    }
+    this.messenger.sendMessage(to, msgObj, reply)
+  }
+
   messageHandler (msgObj, fn) {}
 
   prepareBrowser (data) {
@@ -425,6 +434,7 @@ class _MZ {
 
 const mz = new _MZ()
 window.MZ = {
+  sendMessage: mz.sendMessage.bind(mz),
   registerOnReadyJob: mz.registerOnReadyJob.bind(mz),
   getTemplate: mz.getTemplate.bind(mz),
   getCustomConfig: mz.getCustomConfig.bind(mz),

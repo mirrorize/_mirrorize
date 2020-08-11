@@ -300,23 +300,8 @@ class CustomElement extends HTMLElement {
     }
   }
 
-  sendMessage (message, callback, bindTo = this.bindTo) {
-    var msg = {
-      message: message,
-      _element: this.uid,
-      _tagname: this.mzTagName,
-      _component: bindTo
-    }
-    var c = (typeof callback === 'function') ? callback.bind(this) : null
-    MZ.sendMessage(msg, c)
-  }
-
-  sendMessageToComponent (payload, callback, bindTo = this.bindTo) {
-    var msg = {
-      key: 'TO_COMPONENT',
-      payload: payload
-    }
-    this.sendMessage(msg, callback, bindTo)
+  sendMessage (to, msgObj, reply) {
+    MZ.sendMessage(to, msgObj, reply)
   }
 }
 

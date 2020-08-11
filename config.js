@@ -2,7 +2,12 @@ var config = {
   common: {
     dev: false,
     logLevel: 0,
-    defaultClient: 'default'
+    defaultClient: 'default',
+    locale: 'en-US',
+    language: 'en',
+    timezone: 'Europe/Berlin',
+    longitude: '38.000',
+    lattitude: '38.000'
   },
   webserver: {
     privateKey: './server.key',

@@ -13,7 +13,7 @@ function _require (required) {
     }
   } catch (e) {
     console.warn(`${required} has some issue to load.`)
-    console.warn(e.message)
+    console.warn(e)
     return null
   }
 }
@@ -67,6 +67,7 @@ class _Components {
           reject(new Error('disabled:true'))
           return
         }
+        config = Object.assign({}, this.config.common, config)
         var Klass = _require(cPath)
         if (!Klass) {
           console.warn('Fails to find component:', name)
@@ -226,14 +227,18 @@ class _Components {
               return (item.name === e)
             })) {
               var el = (component.elements[e]) ? component.elements[e] : null
+              var cfg = null
+              if (el && el.config) {
+                cfg = Object.assign({}, this.config.common, el.config)
+              }
               ce.push({
                 name: e,
                 path: path.join(component.dir, 'elements', file),
                 url: component.url + '/elements/' + file,
                 origin: component.name,
-                config: (el && el.config) ? el.config : null,
+                config: cfg,
                 template: (el && el.template) ? el.template : null,
-                _config: (el) || null
+                _config: (el) || null // ???
               })
               resolve()
             } else {

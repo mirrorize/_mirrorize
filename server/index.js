@@ -29,8 +29,10 @@ try {
 
 var config = {}
 const { common, ...rest } = rawConfig
-for (const part of Object.keys(rest)) {
+const mold = ['webserver', 'components', 'commander']
+for (const part of mold) {
   config[part] = Object.assign({}, common, rest[part])
+  config[part].common = common
 }
 
 var Server = require('./server.js')

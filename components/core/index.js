@@ -17,11 +17,6 @@ module.exports = class extends ComponentClass {
     return ['/misc']
   }
 
-  onStart () {
-    if (this.config.locale) moment.locale(this.config.locale)
-    if (this.config.timezone) moment.tz.setDefault(this.config.timezone)
-  }
-
   onMessage (msgObj, reply) {
     reply({
       replied: true,

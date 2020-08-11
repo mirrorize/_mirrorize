@@ -14,6 +14,13 @@ class _Server {
         reject(e)
         return
       }
+
+      const configParts = ['webserver', 'components', 'commander']
+
+      for (var c of configParts) {
+        config[c] = Object.assign({}, config.common, config[c])
+      }
+
       this.Components = require('./components.js')
       this.WebServer = require('./webserver.js')
       this.Commander = require('./commander.js')

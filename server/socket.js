@@ -54,7 +54,7 @@ class _Socket {
       nsp.on('connect', (socket) => {
         // nspManager(socket)
         var isClient = null
-        socket.on('IM_CLIENT', (clientUID) => {
+        socket.on('IM_CLIENT', (clientUID, clientName) => {
           Log.log('Client registered.', clientUID)
           isClient = clientUID
         })

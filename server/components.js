@@ -213,7 +213,7 @@ class _Components {
     return r
   }
 
-  onClientReady ({ clientUID, clientName }) {
+  onClientReady (clientUID, clientName) {
     return new Promise((resolve) => {
       var promises = []
       this.components.forEach((component, i) => {
@@ -223,11 +223,11 @@ class _Components {
     })
   }
 
-  onClientDisconnected ({ clientUID, clientName }) {
+  onClientDisconnected (clientUID) {
     return new Promise((resolve) => {
       var promises = []
       this.components.forEach((component, i) => {
-        promises.push(component.onClientDisconnected(clientUID, clientName))
+        promises.push(component.onClientDisconnected(clientUID))
       })
       Promise.allSettled(promises).then(resolve)
     })

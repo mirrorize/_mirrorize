@@ -1,4 +1,4 @@
-const log = require('./logger.js')('WEBSERVER')
+const Log = require('./logger.js')('WEBSERVER')
 const express = require('express')
 const session = require('express-session')
 const http = require('http')
@@ -64,10 +64,10 @@ class _WebServer {
           }
         })
         this.server.listen(this.port)
-        log.info('WebServer start listening:', this.port)
+        Log.info('WebServer start listening:', this.port)
         resolve()
       } catch (e) {
-        log.error('Fail to initiate WebServer')
+        Log.error('Fail to initiate WebServer')
         reject(e)
       }
     })

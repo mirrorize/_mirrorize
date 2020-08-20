@@ -85,10 +85,10 @@ class _Server {
         })
         break
       case 'BROWSER_PREPARED':
-        this.Components.onClientReady(msgObj)
+        this.Components.onClientReady(msgObj.clientUID, msgObj.clientName)
         break
       case 'CLIENT_DISCONNECTED':
-        this.Components.onClientDisconnected(msgObj)
+        this.Components.onClientDisconnected(msgObj.clientUID)
         break
     }
   }

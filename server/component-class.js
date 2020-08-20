@@ -1,4 +1,4 @@
-const log = require('./logger.js')('COMPONENTCLASS')
+const Log = require('./logger.js')('COMPONENTCLASS')
 const { configure } = require('./configure.js')
 const Helper = require('./components.js').export()
 
@@ -17,7 +17,7 @@ class ComponentClass {
       elements = {}
     } = _config
     if (disabled) {
-      log.warn('Component will not constructed(disabled: true)')
+      Log.warn('Component will not constructed(disabled: true)')
       return new Error('Component will not constructed(disabled: true)')
     }
     this.config = configure(this.defaultConfig(), config)
@@ -29,9 +29,9 @@ class ComponentClass {
 
   // onLoaded () {}
 
-  onClientReady ({ clientUID, clientName }) {}
+  onClientReady (clientUID, clientName) {}
 
-  onClientDisconnected ({ clientUID, clientName }) {}
+  onClientDisconnected (clientUID) {}
 
   onStart () {}
 
@@ -53,7 +53,7 @@ class ComponentClass {
   }
 
   onMessage (msgObj, reply = () => {}) {
-    log.info(`${this.name} got message but it will be ignored.`)
+    Log.info(`${this.name} got message but it will be ignored.`)
     reply(false)
   }
 
@@ -97,11 +97,11 @@ class ComponentClass {
   }
 
   onSuspend () {
-    log.info(`Component:${this.name} is asked to be suspended. (ignored)`)
+    Log.info(`Component:${this.name} is asked to be suspended. (ignored)`)
   }
 
   onResume () {
-    log.info(`Component:${this.name} is asked to be resumed. (ignored)`)
+    Log.info(`Component:${this.name} is asked to be resumed. (ignored)`)
   }
 
   getComponentByName (componentName) {

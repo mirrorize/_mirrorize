@@ -5,7 +5,7 @@
 </template>
 -->
   <template id="body">
-  <mz-page start="page0" rotation="page0, page1" interval="30000"></mz-page>
+  <mz-page start="page0" rotation="page0, page1" interval="300000000"></mz-page>
   <mz-holder id="nopage" class="page">
     <div class="layout">
       <mz-clock template="miniclock" class="top right"></mz-clock>
@@ -14,14 +14,15 @@
   </mz-holder>
   <mz-holder id="greeting" page="page0" class="page">
     <div  class="layout">
-      <mz-weather location="home" class="bottom left" template="miniweather" config="miniweather" refresh="10000"></mz-weather>
-      <mz-image class="background" src="https://source.unsplash.com/featured?background" fitmode="cover" refresh="60000" autoseed></mz-image>
+      <!--<mz-weather location="home" class="bottom left" template="miniweather" config="miniweather" refresh="10000"></mz-weather>-->
+      <mz-weather class="left" refresh="10000000"></mz-weather>
+      <!--<mz-image class="background" src="https://source.unsplash.com/featured?background" fitmode="cover" refresh="60000" autoseed></mz-image>-->
       <mz-compliments source="example" class="center" refresh="5000"></mz-compliments>
     </div>
   </mz-holder>
   <mz-holder id="page1" page="page1" class="page" hidden>
     <div class="layout">
-      <mz-weather class="left" refresh="10000"></mz-weather>
+      
       <mz-clock class="right"></mz-clock>
       <mz-image class="background" src="/_client/resources/example_image.jpg" fitmode="cover"></mz-image>
       <mz-compliments source="greetings" class="center" refresh="5000"></mz-compliments>

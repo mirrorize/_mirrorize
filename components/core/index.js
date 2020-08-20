@@ -44,7 +44,7 @@ module.exports = class extends ComponentClass {
     }, 1000)
   }
 
-  onClientDisconnected (clientUID, clientName) {
-    _.log('Disconnected')
+  onClientDisconnected (clientUID) {
+    _.log('Disconnected', clientUID)
   }
 }

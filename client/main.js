@@ -126,7 +126,7 @@ class _MZ {
     }
     this.socket.getClientMessenger('/', on).then((messenger) => {
       this.messenger = messenger
-      messenger.registerClient(this.clientUID)
+      messenger.registerClient(this.clientUID, this.clientName)
       messenger.joinRoom('CLIENT')
       messenger.joinRoom(`CLIENT(UID:${this.clientUID})`)
       messenger.joinRoom(`CLIENT(NAME:${this.clientName})`)

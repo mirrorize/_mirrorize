@@ -1,3 +1,4 @@
+// const console = require('./logger.js')('MESSENGER')
 class Messenger {
   constructor (socket) {
     this.socket = socket
@@ -6,21 +7,20 @@ class Messenger {
   transportData (to, key, data) {
     const parsed = this.parse(to)
     if (parsed instanceof Error) {
-      throw parsed
+      console.warn(parsed.message)
+      return
     }
     this.socket.emit('_DATA', parsed, key, data)
   }
 
-  sendMessage (to, msgObj, callback) {
-    return new Promise((resolve, reject) => {
-      const parsed = this.parse(to)
-      if (parsed instanceof Error) {
-        callback(parsed)
-        reject(parsed)
-      }
-      this.socket.emit('_TO', parsed, msgObj, callback)
-      resolve()
-    })
+  sendMessage (to, msgObj, fn) {
+    const parsed = this.parse(to)
+    if (parsed instanceof Error) {
+      fn(parsed)
+      console.warn(parsed.message)
+      return
+    }
+    this.socket.emit('_TO', parsed, msgObj, fn)
   }
 
   onMessage (handler = (msgObj, reply) => {}) {

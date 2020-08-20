@@ -1,9 +1,17 @@
-/* global HTMLElement, MZ, customElements Element */
+/* global HTMLElement, MZ, customElements */
 
 var uids = 1
+/*
 const _getCurrentStyle = (item) => {
   return window.getComputedStyle(item)
 }
+*/
+
+const hiddenStyle = `
+:host[mzhidden] {
+  display:none;
+}
+`
 
 class CustomElement extends HTMLElement {
   // static uids = 1
@@ -16,19 +24,7 @@ class CustomElement extends HTMLElement {
     this.onLoaded()
   }
 
-  defaultStyle () {
-    return ''
-  }
-
-  defaultContent () {
-    return ''
-  }
-
   get contentDom () {
-    /*
-    var query = '.mzShadowContentDom'
-    return (this.isShadow) ? this.shadowRoot.querySelector(query) : this
-    */
     return (this.shadowRoot) ? this.shadowRoot : this
   }
 
@@ -37,24 +33,15 @@ class CustomElement extends HTMLElement {
   }
 
   get hidable () {
-    return false
+    return true
   }
 
   get shadowMode () {
     return 'open'
   }
 
-  get reconfigurable () {
-    return false
-  }
-
   get importedShadowCSS () {
     return null
-  }
-
-  // false : you need to draw initial content with .defaultContent() or render by yourself sometime.
-  get templateCustomizable () {
-    return true
   }
 
   constructor () {
@@ -72,9 +59,9 @@ class CustomElement extends HTMLElement {
       this._definedCallback()
     })
     var definition = MZ.getCustomElementDefinition(this.mzTagName)
-    this.config = (definition.config) ? (definition.config) : {}
-    if (this.reconfigurable) {
-      var reconf = this.getAttribute('config')
+    this.config = (definition && definition.config) || {}
+    var reconf = this.getAttribute('config')
+    if (reconf) {
       var newConfig = MZ.getCustomConfig(reconf)
       if (newConfig) this.reconfig(newConfig)
     }
@@ -88,18 +75,19 @@ class CustomElement extends HTMLElement {
       this.attachShadow({ mode: this.shadowMode })
     }
 
-    var template = null
     if (!this.shadowRoot && this.innerHTML.trim() !== '') {
       // do nothing;
     } else {
-      if (this.templateCustomizable) {
-        var overrideTemplateId = this.getAttribute('template')
-        var ot = null
-        if (overrideTemplateId && (ot = MZ.getTemplate(overrideTemplateId))) {
-          template = ot
-        } else if (definition.template) {
-          template = document.createRange().createContextualFragment(definition.template)
-        }
+      var templateId = this.getAttribute('template') || this.mzTagName
+      var found = document.querySelector(`template#${templateId}`)
+      if (found) this.contentDom.appendChild(found.content.cloneNode(true))
+      /*
+      var overrideTemplateId = this.getAttribute('template')
+      var ot = null
+      if (overrideTemplateId && (ot = MZ.getTemplate(overrideTemplateId))) {
+        template = ot
+      } else if (definition.template) {
+        template = document.createRange().createContextualFragment(definition.template)
       }
       if (!template) {
         const _getDefaultContent = () => {
@@ -114,8 +102,9 @@ class CustomElement extends HTMLElement {
         }
         template = _getDefaultContent()
       }
+      */
     }
-    if (template) this.contentDom.appendChild(template)
+    // if (template) this.contentDom.appendChild(template)
     if (this.shadowRoot) {
       var imp = this.importedShadowCSS
       if (imp) {
@@ -123,6 +112,11 @@ class CustomElement extends HTMLElement {
         style.innerHTML = `@import url("${imp}");`
         this.contentDom.appendChild(style)
       }
+    }
+    if (this.shadow && this.hidable) {
+      var hstyle = document.createElement('style')
+      style.innerHTML = hiddenStyle
+      this.contentDom.appendChild(hstyle)
     }
     Object.defineProperty(this, 'isConstructed', {
       value: true,
@@ -178,11 +172,11 @@ class CustomElement extends HTMLElement {
 
   /* Implement in Child */
   static observableAttributes () {
+    var observe = ['bind']
     if (this.reconfigurable) {
-      return ['config', 'bind']
-    } else {
-      return ['bind']
+      observe.push('config')
     }
+    return observe
   }
 
   attributeChangedCallback (name, oldValue, newValue) {
@@ -196,7 +190,7 @@ class CustomElement extends HTMLElement {
 
   reconfig (newConfig = null) {
     if (this.reconfigurable) {
-      if (newConfig) this.config = newConfig
+      if (newConfig) this.config = Object.assign({}, this.config, newConfig)
     }
   }
 
@@ -207,14 +201,17 @@ class CustomElement extends HTMLElement {
     this.setAttribute('uid', this.uid)
     this.setAttribute('tagname', this.mzTagName)
     this.setAttribute('mzcustomelement', '')
+    if (this.hasAttribute('hiddenonstart')) {
+      this.hide(null, { timing: { duration: 0 } })
+      this.mzhidden = true
+    }
     this.onConnected()
-    this._previousDispType = _getCurrentStyle(this).getPropertyValue('display')
+    // this._previousDispType = _getCurrentStyle(this).getPropertyValue('display')
     if (MZ.isMZReady()) this._MZReady()
     this._ready()
   }
 
   onReady () {
-    console.log(`${this.mzTagName} is ready.`)
   }
 
   /* Implement in Child */
@@ -229,10 +226,6 @@ class CustomElement extends HTMLElement {
 
   show (lock = null, option = {}) {
     return new Promise((resolve, reject) => {
-      if (!this.hidable) {
-        resolve(this.hidable)
-        return
-      }
       var {
         animation = {
           opacity: [0, 1]
@@ -242,14 +235,14 @@ class CustomElement extends HTMLElement {
           easing: 'ease-in-out'
         }
       } = option
-      var cs = _getCurrentStyle(this)
       this.displayLock.delete(lock)
       if (this.displayLock.size === 0) {
-        if (cs.getPropertyValue('display') === 'none') {
-          this.style.display = this._previousDispType
+        if (this.hasAttribute('hidden')) {
+          this.removeAttribute('hidden')
           var ani = this.animate(animation, timing)
           ani.onfinish = () => {
-            this.style.cssText = ''
+            this.onShow()
+            this.resume()
             resolve()
           }
         } else {
@@ -263,10 +256,6 @@ class CustomElement extends HTMLElement {
 
   hide (lock = null, option = {}) {
     return new Promise((resolve, reject) => {
-      if (!this.hidable) {
-        resolve(this.hidable)
-        return
-      }
       var {
         animation = {
           opacity: [1, 0]
@@ -276,20 +265,41 @@ class CustomElement extends HTMLElement {
           easing: 'ease-in-out'
         }
       } = option
-      var cs = _getCurrentStyle(this)
       if (lock) this.displayLock.add(lock)
-      if (cs.getPropertyValue('display') !== 'none') {
-        this._previousDispType = cs.getPropertyValue('display')
-        this.style.display = this._previousDispType
+      if (!this.getAttribute('hidden')) {
         var ani = this.animate(animation, timing)
         ani.onfinish = () => {
-          this.style.display = 'none'
+          this.setAttribute('hidden', '')
+          this.onHide()
+          this.suspend()
           resolve()
         }
       } else {
         resolve()
       }
     })
+  }
+
+  onHide () {
+
+  }
+
+  onShow () {
+
+  }
+
+  suspend () {
+    this.onSuspend()
+  }
+
+  resume () {
+    this.onResume()
+  }
+
+  onSuspend () {
+  }
+
+  onResume () {
   }
 
   exportChildrenParts () {

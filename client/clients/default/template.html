@@ -4,19 +4,29 @@
   ... some of your base design and layout.
 </template>
 -->
-
-<template id="body">
-  <div>
-    Test text.
-  </div>
-  <div><span class="iconify" data-icon="flat-color-icons:rating" data-inline="false"></span>---</div>
-  <mz-test>
-    <span slot="a1">This is injection.</span>
-  </mz-test>
-  <div>---</div>
-  <mz-compliments refresh="30000" source="example"></mz-compliments>
-  <div> ======================== </div>
-  <mz-compliments refresh="34567" source="default, greetings"></mz-compliments>
+  <template id="body">
+  <mz-page start="page0" rotation="page0, page1" interval="30000"></mz-page>
+  <mz-holder id="nopage" class="page">
+    <div class="layout">
+      <mz-clock template="miniclock" class="top right"></mz-clock>
+    </div>
+    <mz-page-indicator></mz-page-indicator>
+  </mz-holder>
+  <mz-holder id="greeting" page="page0" class="page">
+    <div  class="layout">
+      <mz-weather location="home" class="bottom left" template="miniweather" config="miniweather" refresh="10000"></mz-weather>
+      <mz-image class="background" src="https://source.unsplash.com/featured?background" fitmode="cover" refresh="60000" autoseed></mz-image>
+      <mz-compliments source="example" class="center" refresh="5000"></mz-compliments>
+    </div>
+  </mz-holder>
+  <mz-holder id="page1" page="page1" class="page" hidden>
+    <div class="layout">
+      <mz-weather class="left" refresh="10000"></mz-weather>
+      <mz-clock class="right"></mz-clock>
+      <mz-image class="background" src="/_client/resources/example_image.jpg" fitmode="cover"></mz-image>
+      <mz-compliments source="greetings" class="center" refresh="5000"></mz-compliments>
+    </div>
+  </mz-holder>
 </template>
 
 
@@ -26,22 +36,43 @@
   ...
 </template>
 -->
-<template id="test1">
+
+<template id="miniclock">
+<style>
+:host {
+  display: flex;
+  contain: content;
+  justify-content: center;
+  align-items: center;
+  font-size: calc(var(--font-base-size, 20px) * 3.5);
+}
+mz-clock-part {
+  color: var(--font-color-first, white);
+  font-weight: bolder;
+  font-family: var(--font-sans, sans-serif);
+}
+
+</style>
+<mz-clock-part format="HH"></mz-clock-part><mz-clock-part format=":" animate force></mz-clock-part><mz-clock-part format="mm"</mz-clock-part>
+</template>
+
+<template id="miniweather">
+
+<mz-weather-section section="current" template="mini_current"></mz-weather-section>
+</template>
+
+<template id="mini_current">
 <style>
   :host {
-    display: block;
+    display: flex;
+    flex-direction: row;
+    box-sizing: border-box;
+    color: var(--font-color-first, #FFF);
+    font-size: calc(var(--default-font-size, 20px) * 3);
+    font-weight: bolder;
+    justify-content: space-around;
   }
 </style>
-<div>This is user customized template</div>
-<div>[<slot name="a1"></slot>]</div>
-<div><span class="iconify-inline" data-icon="mdi-account-box"></span></div>
-<div><span class="iconify" data-icon="wi:smoke" data-inline="false"></span></div>
-<div>end</div>
-</template>
-<template id="test2">
-  <div>This is Another user customized template</div>
-  <div><slot name="a1"></slot></div>
-  <div><span class="iconify-inline" data-icon="mdi-account-box"></span>
-  <div><span class="iconify" data-icon="wi:smoke" data-inline="false"></span></div>
-  <div>end</div>
+<mz-weather-part part="weather.icon" type="icon"></mz-weather-part>
+<mz-weather-part part="temp" type="temperature" fixup="0" displayunit></mz-weather-part>
 </template>

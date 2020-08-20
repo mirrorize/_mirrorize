@@ -1,6 +1,7 @@
+const Log = require('./logger.js')('COMPONENTS')
+// const Translate = require('./translate.js')
 const path = require('path')
 const fs = require('fs')
-// const Clients = require('./clients.js')
 const Socket = require('./socket.js')
 
 function _require (required) {
@@ -9,13 +10,29 @@ function _require (required) {
       var r = require(required)
       return r
     } else {
-      console.warn('File not found:', required)
+      Log.warn('File not found:', required)
+      return null
     }
   } catch (e) {
-    console.warn(`${required} has some issue to load.`)
-    console.warn(e)
+    Log.warn(`${required} has some issue to load.`)
+    Log.warn(e)
     return null
   }
+}
+
+function _scanAllFiles (cPath, pattern) {
+  var r = fs.readdirSync(cPath, { withFileTypes: true })
+    .filter((dirent) => {
+      return dirent.isFile()
+    })
+    .map((dirent) => {
+      return dirent.name
+    })
+    .filter((name) => {
+      return pattern.test(name)
+    })
+  if (!Array.isArray(r)) r = []
+  return r
 }
 
 class _Components {
@@ -32,7 +49,7 @@ class _Components {
       (async () => {
         var list = await this.scanComponents()
         if (!Array.isArray(list) || list.length <= 0) {
-          console.warn('There is no component to load. This would not be the error but you need to confirm.')
+          Log.warn('There is no component to load. This would not be the error but you need to confirm.')
           resolve()
         }
         const promises = []
@@ -46,10 +63,6 @@ class _Components {
     })
   }
 
-  getMessenger () {
-    return this.messenger
-  }
-
   loadComponent (name) {
     return new Promise((resolve, reject) => {
       try {
@@ -58,29 +71,30 @@ class _Components {
         const configPath = path.join(dir, 'config.js')
         var config = _require(configPath)
         if (!config) {
-          console.warn(`Component '${name}' will be instanced without configuration.`)
+          Log.warn(`Component '${name}' will be instanced without configuration.`)
           config = {}
         }
 
         if (config.disabled) {
-          console.info(`Component '${name}' will not be loaded because 'disabled' is set.`)
+          Log.info(`Component '${name}' will not be loaded because 'disabled' is set.`)
           reject(new Error('disabled:true'))
           return
         }
-        config = Object.assign({}, this.config.common, config)
+        // var t = Object.assign({}, config.config)
+        config.config = Object.assign({}, this.config.common, config.config)
         var Klass = _require(cPath)
         if (!Klass) {
-          console.warn('Fails to find component:', name)
-          console.warn(Klass)
-          console.warn(`Component:${name} will not be loaded.`)
+          Log.warn('Fails to find component:', name)
+          Log.warn(Klass)
+          Log.warn(`Component:${name} will not be loaded.`)
           reject(Klass)
           return
         }
         var component = new Klass(config)
         if (component instanceof Error) {
-          console.warn('Fails to load component:', name)
-          console.warn(component.message)
-          console.info(`Component ${name} will not be loaded.`)
+          Log.warn('Fails to load component:', name)
+          Log.warn(component.message)
+          Log.info(`Component ${name} will not be loaded.`)
           reject(component)
         } else {
           Object.defineProperty(component, 'name', {
@@ -95,24 +109,25 @@ class _Components {
             value: '/' + name,
             writable: false
           })
+
           Socket.getClientMessenger('/').then((messenger) => {
             component.messenger = messenger
             component.messenger.joinRoom('COMPONENT')
             component.messenger.joinRoom(`COMPONENT(NAME:${name})`)
             component.messenger.onMessage(component.onMessage.bind(component))
             this.components.push(component)
+            Log.info(`Component '${name}' is constructed.`)
             component.onConstructed()
-            console.info(`Component '${name}' is constructed.`)
             resolve()
           }).catch((e) => {
-            console.error(e)
-            console.info('Fail to load component:', name)
+            Log.error(e)
+            Log.info('Fail to load component:', name)
             reject(e)
           })
         }
       } catch (e) {
-        console.warn('Fail to load components.')
-        console.error(e)
+        Log.warn('Fail to load components.')
+        Log.error(e)
         reject(e)
       }
     })
@@ -169,16 +184,9 @@ class _Components {
     return this.components
   }
 
-  /*
-  findById (id) {
-    return this.components.find((c) => {
-      return (c.id === id)
-    })
-  }
-  */
   start () {
-    console.log('Components start')
     return new Promise((resolve) => {
+      Log.info('Each component will be starting')
       for (const component of this.components) {
         component.start()
       }
@@ -205,105 +213,6 @@ class _Components {
     return r
   }
 
-  allCustomElements () {
-    var ce = []
-    const scanCustomElement = (component) => {
-      return new Promise((resolve, reject) => {
-        var cPath = path.join(component.dir, 'elements')
-        try {
-          const r = fs.readdirSync(cPath, { withFileTypes: true })
-            .filter((dirent) => {
-              return dirent.isFile()
-            })
-            .map((dirent) => {
-              return dirent.name
-            })
-            .filter((name) => {
-              return /^mz-[0-9a-zA-Z-_]*\.js$/i.test(name)
-            })
-          for (const file of r) {
-            const e = file.substring(0, file.length - 3)
-            if (!ce.find((item) => {
-              return (item.name === e)
-            })) {
-              var el = (component.elements[e]) ? component.elements[e] : null
-              var cfg = null
-              if (el && el.config) {
-                cfg = Object.assign({}, this.config.common, el.config)
-              }
-              ce.push({
-                name: e,
-                path: path.join(component.dir, 'elements', file),
-                url: component.url + '/elements/' + file,
-                origin: component.name,
-                config: cfg,
-                template: (el && el.template) ? el.template : null,
-                _config: (el) || null // ???
-              })
-              resolve()
-            } else {
-              console.warn(`Custom Element '${component.name}.${e}' seems duplicated. It will be ignored.'`)
-            }
-          }
-        } catch (e) {
-          // console.warn(e.message)
-          console.info(`Component '${component.name}' has no custom element`)
-          resolve()
-        }
-      })
-    }
-
-    return new Promise((resolve, reject) => {
-      var promises = []
-      for (var component of this.components) {
-        promises.push(scanCustomElement(component))
-      }
-      Promise.allSettled(promises).then(() => {
-        resolve(ce)
-      })
-    })
-  }
-
-  allInjects (type) {
-    var method = ''
-    var message = ''
-    var key = null
-    if (type === 'style') {
-      method = 'injectStyles'
-      message = 'Stylesheet'
-      key = '_styles'
-    } else if (type === 'script') {
-      method = 'injectScripts'
-      message = 'Script'
-      key = '_scripts'
-    } else if (type === 'module') {
-      method = 'injectModuleScripts'
-      message = 'Module-Script'
-      key = '_moduleScripts'
-    } else {
-      console.warn('Invalid injection type:', type)
-      return
-    }
-    var is = []
-    for (var component of this.components) {
-      var cis = (component.customOverride[key])
-        ? component.customOverride[key]
-        : component[method]()
-      if (cis && Array.isArray(cis) && cis.length > 0) {
-        for (var s of cis) {
-          if (!is.find((item) => {
-            return (item === s)
-          })) {
-            is.push(s)
-          } else {
-            console.warn(`${message} to inject '${s}' of '${component.name}' seems duplicated. It will be ignored.'`)
-          }
-        }
-      }
-    }
-    return is
-  }
-
   onClientReady ({ clientUID, clientName }) {
     return new Promise((resolve) => {
       var promises = []
@@ -324,56 +233,113 @@ class _Components {
     })
   }
 
-  prepareClient () {
+  clientAssets () {
     return new Promise((resolve, reject) => {
       try {
-        this.allCustomElements().then((r) => {
-          this.clientPrepares = {
-            // listId: this.listId(),
-            scripts: this.allInjects('script'),
-            styles: this.allInjects('style'),
-            modules: this.allInjects('module'),
-            elements: r
-          }
-          resolve()
-        }).catch(reject)
+        (async () => {
+          var assets = {}
+          assets.styles = await this.allInjections('css', 'css', 'injectStyles')
+          assets.scripts = await this.allInjections('js', 'js', 'injectScripts')
+          assets.templates = await this.allInjections('templates', 'html', 'injectTemplates')
+          assets.elements = await this.allElementsInjections('elements', 'js', 'injectElements')
+          resolve(assets)
+        })()
       } catch (e) {
+        Log.warn('Fail to prepare Client Assets')
         reject(e)
       }
     })
   }
 
-  getClientFeed () {
-    return this.clientPrepares
-  }
+  allElementsInjections (dirName, ext, componentMethod) {
+    var ce = []
+    const scanCustomElement = (component) => {
+      return new Promise((resolve, reject) => {
+        var cPath = path.join(component.dir, 'public', 'elements')
+        try {
+          const r = fs.readdirSync(cPath, { withFileTypes: true })
+            .filter((dirent) => {
+              return dirent.isFile()
+            })
+            .map((dirent) => {
+              return dirent.name
+            })
+            .filter((name) => {
+              return /^mz-[0-9a-zA-Z-_]*\.js$/i.test(name)
+            })
+          for (const file of r) {
+            const e = file.split('.').shift()
+            if (!ce.find((item) => {
+              return (item.name === e)
+            })) {
+              var el = (component.elements[e]) || {}
+              var cfg = null
+              if (!el.config) el.config = {}
+              if (el.config) {
+                cfg = Object.assign({}, this.config.common, el.config)
+              }
+              ce.push({
+                name: e,
+                path: path.join(component.dir, 'public', 'elements', file),
+                url: component.url + '/public/elements/' + file,
+                origin: component.name,
+                config: cfg,
+                _config: (el) || null // ??? I cannot remember what it was. maybe original configuration.
+              })
+              resolve()
+            } else {
+              Log.warn(`Custom Element '${component.name}.${e}' seems duplicated. It will be ignored.'`)
+              resolve()
+            }
+          }
+          resolve()
+        } catch (e) {
+          Log.warn(e.message)
+          Log.info(`Component '${component.name}' has no custom element`)
+          resolve()
+        }
+      })
+    }
 
-  /*
-  messageToComponent (mObj) {
     return new Promise((resolve, reject) => {
-      mObj.message = mObj.message.payload
-      var c = this.findById(mObj._component)
-      if (c) {
-        resolve(c.onClientMessage(mObj))
-      } else {
-        reject(new Error('Invalid Component'))
+      var promises = []
+      for (var component of this.components) {
+        promises.push(scanCustomElement(component))
       }
+      Promise.allSettled(promises).then(() => {
+        resolve(ce)
+      })
     })
   }
-  */
+
+  allInjections (dirName, ext, componentMethod) {
+    return new Promise((resolve, reject) => {
+      var result = []
+      var tPath = path.join('public', dirName)
+      for (var component of this.components) {
+        var dir = path.join(component.dir, tPath)
+        var url = path.join(component.url, tPath)
+        var aResult = _scanAllFiles(dir, new RegExp(`^[^_].+${ext}$`, 'i')).map((file) => {
+          return path.join(url, file)
+        })
+        var eResult = (typeof component[componentMethod] === 'function') ? component[componentMethod]() : []
+        result = [...result, ...aResult, ...eResult]
+      }
+      resolve(result)
+    })
+  }
+
+  getComponentByName (name) {
+    return this.components.find((c) => {
+      return (c.name === name)
+    })
+  }
 
   export () {
     return {
-      // getMessenger: this.getMessenger.bind(this),
+      getComponentByName: this.getComponentByName.bind(this),
       listComponents: this.list.bind(this),
       listComponentName: this.listName.bind(this)
-      // findComponentById: this.findById.bind(this)
-      /*
-      broadcastComponentMessage: (message) => {},
-      sendComponentMessage: (targetModule, message) => {},
-      sendMessageToClient: (from, to, message) => {
-        Clients.sendMessageToClient(from, to, message)
-      }
-      */
     }
   }
 }

@@ -1,13 +1,13 @@
 var config = {
   common: {
+    dev: false,
+    logLevel: 0,
     defaultClient: 'default',
-    // These are just example for overriding common config values.
-    // These values will be delivered but would not be used in components or customElements by creator.
-    locale: 'de-DE',
-    language: 'de',
+    locale: 'en-US',
+    language: 'en',
     timezone: 'Europe/Berlin',
     longitude: '38.000',
-    lattitude: '38.000',
+    lattitude: '38.000'
   },
   webserver: {
     privateKey: './server.key',

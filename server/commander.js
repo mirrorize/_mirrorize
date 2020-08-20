@@ -18,7 +18,7 @@ class _Commander {
       try {
         for (const component of components) {
           if (typeof component.registerCommand === 'function') {
-            var commands = component.registerCommand()
+            var commands = component.registerCommands()
             commands.forEach((c, i) => {
               var command, callback, description, originalCommand, from
               from = component.id

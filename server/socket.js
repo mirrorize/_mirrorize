@@ -1,3 +1,4 @@
+const Log = require('./logger.js')('SOCKET')
 const ClientIO = require('socket.io-client')
 const ServerIO = require('socket.io')
 const Messenger = require('./messenger.js')
@@ -36,7 +37,7 @@ class _Socket {
       this.getClientSocket(name).then((socket) => {
         resolve(new Messenger(socket))
       }).catch((error) => {
-        console.error(error.message)
+        Log.error(error.message)
         reject(error)
       })
     })
@@ -45,7 +46,7 @@ class _Socket {
   initNamespace (name, nspManager = () => {}) {
     var ns = this._regulateNSP(name)
     if (!ns) {
-      console.warn(`'${name}' is not valid as a namespace of 'socket.io'. This registration will be ignored.`)
+      Log.warn(`'${name}' is not valid as a namespace of 'socket.io'. This registration will be ignored.`)
       return false
     }
     var nsp = this.serverIO.of(ns)
@@ -54,12 +55,12 @@ class _Socket {
         // nspManager(socket)
         var isClient = null
         socket.on('IM_CLIENT', (clientUID) => {
-          console.log('Client registered.', clientUID)
+          Log.log('Client registered.', clientUID)
           isClient = clientUID
         })
         socket.on('disconnect', () => {
-          console.log('Socket is disconnected')
-          console.log(isClient)
+          Log.log('Socket is disconnected')
+          Log.log(isClient)
           nsp.to('SERVER').emit('_MESSAGE', {
             message: 'CLIENT_DISCONNECTED',
             clientUID: isClient

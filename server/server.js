@@ -1,6 +1,8 @@
+const Log = require('./logger.js')('SERVER')
 
 class _Server {
   start (config) {
+    Log.info('Server starts.')
     const checkConfig = (config) => {
       if (!config) {
         throw new Error('Invalid server configuration')
@@ -26,8 +28,6 @@ class _Server {
       this.Commander = require('./commander.js')
       this.Clients = require('./clients.js')
       this.Socket = require('./socket.js')
-      // this.WebSocket = require('./websocket.js')
-      //
 
       const scenario = async () => {
         try {
@@ -35,9 +35,9 @@ class _Server {
           await this.Socket.init(this.WebServer.server, this.WebServer.serverURL())
           await this.prepareSelfClientSocket()
           await this.Components.init(config.components)
-          await this.Components.prepareClient()
-          await this.Commander.init(config.commander)
           await this.WebServer.bindComponent(this.Components)
+          // await this.Components.prepareClient()
+          await this.Commander.init(config.commander)
           await this.Commander.registerComponentCommand(this.Components.list())
           await this.Components.start()
           resolve()
@@ -76,7 +76,13 @@ class _Server {
     const message = msgObj.message
     switch (message) {
       case 'REQUEST_BROWSER_ASSETS':
-        reply(this.Components.getClientFeed())
+        this.Components.clientAssets().then((assets) => {
+          reply(assets)
+        }).catch((e) => {
+          Log.warn(`Fail to prepare Client '${message.clientName}.`)
+          Log.error(e)
+          reply(false)
+        })
         break
       case 'BROWSER_PREPARED':
         this.Components.onClientReady(msgObj)

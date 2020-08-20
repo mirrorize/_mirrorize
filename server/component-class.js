@@ -1,6 +1,12 @@
-// const Helper = require('./components.js').export()
+const log = require('./logger.js')('COMPONENTCLASS')
+const { configure } = require('./configure.js')
+const Helper = require('./components.js').export()
 
 class ComponentClass {
+  defaultConfig () {
+    return {}
+  }
+
   constructor (_config) {
     const {
       config = {},
@@ -11,10 +17,10 @@ class ComponentClass {
       elements = {}
     } = _config
     if (disabled) {
-      console.warn('Component will not constructed(disabled: true)')
+      log.warn('Component will not constructed(disabled: true)')
       return new Error('Component will not constructed(disabled: true)')
     }
-    this.config = config
+    this.config = configure(this.defaultConfig(), config)
     this.elements = elements
     this.customOverride = { _moduleScripts, _scripts, _styles }
   }
@@ -23,19 +29,18 @@ class ComponentClass {
 
   // onLoaded () {}
 
-  onClientReady (clientUID, clientName) {
-    return true
-  }
+  onClientReady ({ clientUID, clientName }) {}
 
-  onClientDisconnected (clientUID, clientName) {
-    return true
-  }
+  onClientDisconnected ({ clientUID, clientName }) {}
 
   onStart () {}
 
   injectScripts () { return [] }
   injectStyles () { return [] }
-  injectModuleScripts () { return [] }
+  injectTemplates () { return [] }
+  injectElements () { return [] }
+
+  // injectModuleScripts () { return [] }
 
   webserve (req, res) {
     this.onRequested(req, res)
@@ -47,8 +52,8 @@ class ComponentClass {
     res.status(404).send('No response.')
   }
 
-  onMessage (element, msgObj, reply = () => {}) {
-    console.info(`${this.name} got message but it will be ignored.`)
+  onMessage (msgObj, reply = () => {}) {
+    log.info(`${this.name} got message but it will be ignored.`)
     reply(false)
   }
 
@@ -65,7 +70,45 @@ class ComponentClass {
     this.onStart()
   }
 
-  registerCommand () {
+  suspend (componentName = null, fn = (component) => {}) {
+    if (!componentName) {
+      this.onSuspend()
+      fn(this)
+      return
+    }
+    var component = this.getComponentByName(componentName)
+    if (component) {
+      component.onSuspend()
+      fn(component)
+    }
+  }
+
+  resume (componentName = null, fn = (component) => {}) {
+    if (!componentName) {
+      this.onSuspend()
+      fn(this)
+      return
+    }
+    var component = this.getComponentByName(componentName)
+    if (component) {
+      component.onSuspend()
+      fn(component)
+    }
+  }
+
+  onSuspend () {
+    log.info(`Component:${this.name} is asked to be suspended. (ignored)`)
+  }
+
+  onResume () {
+    log.info(`Component:${this.name} is asked to be resumed. (ignored)`)
+  }
+
+  getComponentByName (componentName) {
+    return Helper.getComponentByName(componentName)
+  }
+
+  registerCommands () {
     return []
   }
 }

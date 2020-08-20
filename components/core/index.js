@@ -1,15 +1,17 @@
-const { ComponentClass, ComponentHelper } = require('../../server/component-helper.js')
+const { ComponentClass, Log } = require('../../server/component-helper.js')
+
+const _ = Log('C:CORE')
 
 module.exports = class extends ComponentClass {
-  injectModuleScripts () {
+  injectStyles () {
     return [
-      '/core/public/core.mjs'
+      '/core/public/misc/fonts/fonts.css'
     ]
   }
 
-  injectStyles () {
+  injectScripts () {
     return [
-      '/core/misc/fonts/fonts.css'
+      '/core/public/misc/luxon.js'
     ]
   }
 
@@ -17,31 +19,32 @@ module.exports = class extends ComponentClass {
     return ['/misc']
   }
 
+  /*
   onMessage (msgObj, reply) {
     reply({
       replied: true,
       payload: msgObj
     })
   }
+  */
 
   onClientReady (clientUID, clientName) {
     setTimeout(() => {
-      this.transportData(`CLIENT(UID:${clientUID})`, 'OOPS', clientName)
       this.sendMessage(`CLIENT(UID:${clientUID})/ELEMENT(NAME:mz-notify)`, {
         message: 'NOTIFY',
         payload: {
           type: 'log',
           title: 'Message from Server',
-          content: `Hello, Client ${clientName}!<br>Glad to meet you.`,
+          content: `Hello, Client '${clientName}'!<br>Glad to meet you.`,
           icon: `<span class="iconify" data-icon="gridicons:comment"></span>`,
-          timer: 1000000,
+          timer: 10000,
           position: 'bottom right'
         }
       })
-    }, 3000)
+    }, 1000)
   }
 
   onClientDisconnected (clientUID, clientName) {
-    console.log('Disconnected')
+    _.log('Disconnected')
   }
 }

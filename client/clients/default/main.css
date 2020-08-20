@@ -1,28 +1,97 @@
 :root {
   /* --font-default: var(--font-handwriting); */
 }
+html {
 
-#oops {
-  background-color: #090;
-}
-/*
-mz-notify::part(mz-notify-item-title) {
-  color: orange;
 }
 
-::part(mz-notify-item-title) {
-  background-color:#0FF;
-}
-*/
-/*
-mz-image::part(background) {
-  background-color:#666;
+body {
+
 }
 
-mz-image::part(mainImage) {
-  width: 95%;
-  height: 95%;
-  top: 2.5%;
-  left: 2.5%;
+mz-holder.page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
-*/
+
+.layout {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-areas:
+    "topleft top topright"
+    "left center right"
+    "bottomleft bottom bottomright";
+  grid-template-columns: 250px auto 250px;
+  grid-template-rows: 150px auto 150px;
+  min-height:0;
+  min-width:0;
+}
+
+
+.layout > * {
+  min-height: 0;
+  overflow: hidden;
+  padding: 20px;
+}
+.layout .background {
+  position: absolute;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index: -1;
+  grid-area: 1 / 1 / 4 / 4;
+  padding: 0;
+  filter: grayscale(80%) brightness(80%) contrast(125%);
+}
+
+.layout .top {
+  grid-area: top;
+  text-align: center;
+}
+
+.layout .left {
+  grid-area: left;
+  text-align: left;
+}
+
+.layout .right {
+  grid-area: right;
+  text-align: right;
+}
+
+.layout .top.right {
+  grid-area: topright;
+}
+
+.layout .bottom.left {
+  grid-area: bottomleft;
+}
+
+.layout .top.left {
+  grid-area: topleft;
+}
+
+.layout .bottom.right {
+  grid-area: bottomright;
+}
+
+
+.layout .center {
+  grid-area: center;
+}
+
+.layout .fullwidth {
+  grid-area: center;
+}
+
+.layout .overlay {
+  z-index: 2;
+}

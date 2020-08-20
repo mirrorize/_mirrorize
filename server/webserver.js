@@ -1,3 +1,4 @@
+const log = require('./logger.js')('WEBSERVER')
 const express = require('express')
 const session = require('express-session')
 const http = require('http')
@@ -15,11 +16,7 @@ class _WebServer {
         this.express.use(session({
           secret: 'jbydhgsidslvxlbamgaj8jexnfltxnfieajgwuu8dkvjduufajcrjthf2uf',
           resave: false,
-          saveUninitialized: true,
-          cookie: {
-            sameSite: 'none',
-            secure: true
-          }
+          saveUninitialized: false
         }))
         this.port = (_config.port) ? _config.port : '8080'
         this.address = (_config.address) ? _config.address : 'localhost'
@@ -44,7 +41,7 @@ class _WebServer {
         }
         this.express.get('/', (req, res) => {
           var client = req.query.client || this.defaultClient
-          req.session.key = client
+          req.session.client = client
           res.sendFile(path.join(__dirname, '..', 'client', 'index.html'))
         })
         this.express.use('/_', express.static(path.join(__dirname, '..', 'client')))
@@ -56,7 +53,7 @@ class _WebServer {
             next()
             return
           }
-          var client = req.session.key || this.defaultClient
+          var client = req.session.client || this.defaultClient
           var fPath = path.join(__dirname, '..', 'client', 'clients', client, req.path)
           var ext = fPath.split('.').pop()
           var stat = (fs.existsSync(fPath)) ? fs.lstatSync(fPath) : null
@@ -67,10 +64,10 @@ class _WebServer {
           }
         })
         this.server.listen(this.port)
-        console.info('WebServer start listening:', this.port)
+        log.info('WebServer start listening:', this.port)
         resolve()
       } catch (e) {
-        console.error('Fail to initiate WebServer')
+        log.error('Fail to initiate WebServer')
         reject(e)
       }
     })

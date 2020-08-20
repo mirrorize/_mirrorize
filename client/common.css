@@ -1,55 +1,38 @@
- @media screen and (max-width: 800px) {
-   :root {
-     --font-size-base: 2vw;
-   }
- }
- @media screen and (min-width: 801px) and (max-width: 1600px){
-   :root {
-     --font-size-base: 1.5vw;
-   }
- }
-
- @media screen and (min-width: 1601px){
-   :root {
-     --font-size-base: 1vw;
-   }
- }
-
-
-
 :root {
   --font-sans: 'Noto Sans', sans-serif;
   --font-serif: 'Noto Serif', serif;
-  --font-display: 'Abril Fatface', cursive;
-  --font-handwriting: 'Sacramento', cursive;
-  --font-mono: 'Ubuntu Mono', monospace;
+  --font-display: 'Staatliches', cursive;
+  --font-handwriting: 'Great Vibes', cursive;
+  --font-mono: 'Courier Prime', monospace;
   --font-default: var(--font-sans);
   --line-height: 100%;
   --font-color-first: #FFF;
   --font-color-second: #BBB;
   --font-color-third: #222;
-
+  --font-base-size: 20px;
   --theme-color-first: #0F4C81;
   --theme-color-second: #658DC6;
   --theme-color-third: #B5C7D3;
 }
 
-html {}
+html {
+  margin:0;
+  padding:0;
+}
 
 body {
   font-family: var(--font-default);
   color: var(--font-color-second);
-  font-size: var(--font-size-base);
-  padding: 10px;
-  height: calc(100vh - 20px);
-  width: calc(100vw - 20px);
+  font-size: var(--font-base-size);
   box-sizing: border-box;
-  position: absolute;
+  position: fixed;
   background-color: #000;
-  top: 10px;
-  left: 10px;
-  right: 10px;
-  bottom: 10px;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
   overflow: hidden;
-  color: var(--font-color-second);
+  margin: 0;
+  text-shadow: 2px 2px 4px #000000;
+
 }

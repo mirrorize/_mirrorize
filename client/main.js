@@ -30,9 +30,6 @@ class _MZ {
     this.isAlreadyConnected = false
     this.isAlreadyPrepared = false
     this.storage = new Map()
-    this.injectedScripts = null
-    this.injectedStyles = null
-    this.injectedModules = null
     this.customElements = []
     this.connectedElements = null
     this.styles = ['/_/common.css', '/_client/main.css']
@@ -47,30 +44,40 @@ class _MZ {
     this.start()
   }
 
-  prepareTemplates () {
-    fetch('/_client/template.html').then((response) => {
-      return response.text()
-    }).then((html) => {
-      this.templates = document.createRange().createContextualFragment(html)
-      var body = this.getTemplate('body')
-      if (body) {
+  prepareTemplates (injectedTemplates = []) {
+    return new Promise((resolve, reject) => {
+      var templates = [...injectedTemplates, '/_client/template.html']
+      Promise.all(templates.map((url) => {
+        return fetch(url).then((resp) => { return resp.text() }).then((html) => {
+          var fdocs = document.createRange().createContextualFragment(html)
+          var tDoms = fdocs.querySelectorAll('template')
+          for (var d of [...tDoms]) {
+            var id = d.id
+            if (!id) continue
+            var old = document.querySelector('template#' + id)
+            if (old) old.remove()
+            document.body.appendChild(d)
+            console.info(`Template '${id}' is appended.`)
+          }
+        })
+      })).then(() => {
+        var body = this.getTemplateDom('body')
+        if (!body) {
+          var er = new Error("At least one 'body' template should exist in templates.")
+          console.error(er)
+          reject(er)
+        }
         document.body.appendChild(body)
-      } else {
-        console.warn('Invalid template file. No content for body will be loaded.')
-      }
-    }).catch((err) => {
-      console.error(err)
-      console.warn('Invalid template file. No content for body will be loaded.')
+        console.log('All templates are loaded.')
+        resolve()
+      })
     })
   }
 
-  getTemplate (selector) {
-    try {
-      return this.templates.querySelector('template#' + selector).content.cloneNode(true)
-    } catch (e) {
-      console.warn(e)
-      return null
-    }
+  getTemplateDom (id) {
+    var d = document.querySelector('template#' + id)
+    if (!d) return null
+    return d.content.cloneNode(true)
   }
 
   getConfig () {
@@ -78,18 +85,13 @@ class _MZ {
   }
 
   setStorage (key, data) {
+    console.log('setStorage', key)
     this.storage.set(key, data)
   }
 
   getStorage (key) {
     return this.storage.get(key)
   }
-
-  /*
-  getClientSocket (nsp) {
-    return this.socket.getClientSocket(nsp)
-  }
-  */
 
   start () {
     console.info('Client starts.', this.clientName, this.clientUID)
@@ -137,6 +139,7 @@ class _MZ {
         clientUID: this.clientUID,
         clientName: this.clientName
       }, (ret) => {
+        console.log('>', ret)
         if (!this.isAlreadyPrepared) {
           this.prepareBrowser(ret).then(() => {
             messenger.sendMessage('SERVER', {
@@ -159,18 +162,19 @@ class _MZ {
     this.messenger.sendMessage(to, msgObj, reply)
   }
 
+  // Handler for 'CLIENT' something.
   messageHandler (msgObj, fn) {}
 
   prepareBrowser (data) {
     return new Promise((resolve, reject) => {
       (async () => {
         // await this.createCSP(this.injectedScripts) // reserved
-        await this.injectStyles(data.styles)
-        await this.injectStyles(this.styles)
+        await this.injectStyles([...data.styles, ...this.styles])
         await this.injectScripts(data.scripts)
-        await this.injectModules(data.modules)
+        // await this.injectModules(data.modules)
+        await this.prepareTemplates(data.templates)
         await this.loadCustomElements(data.elements)
-        this.prepareTemplates()
+
         this._isMZReady = true
         console.info('MZ is ready.')
         await this.doOnReadyJob()
@@ -200,16 +204,6 @@ class _MZ {
       }
       resolve()
     })
-  }
-
-  firstOpened () {
-    if (this.isAlreadyConnected) {
-      window.location.reload()
-      return true
-    } else {
-      this.isAlreadyConnected = true
-      return false
-    }
   }
 
   /* this method is not completed. */
@@ -326,47 +320,13 @@ class _MZ {
     })
   }
 
-  injectModules (modules) {
-    const loadScripts = (sA) => {
-      return new Promise((resolve, reject) => {
-        if (Array.isArray(sA) && sA.length >= 1) {
-          const script = sA.shift()
-          import(script).then((module) => {
-            const { ...rest } = module
-            for (const [key, value] of Object.entries(rest)) {
-              if (Object.prototype.hasOwnProperty.call(MZ, key)) {
-                console.warn(`Identifier '${key}'' of module-script is already registered:`, script)
-              } else {
-                MZ[key] = value
-              }
-            }
-            console.info('Module-Script loaded:', script)
-            resolve(loadScripts(sA))
-          }).catch((e) => {
-            console.warn('Module-Script failed to load:', script)
-            reject(e)
-          })
-        } else {
-          resolve()
-        }
-      })
-    }
-    return new Promise((resolve) => {
-      var sArray = [...modules]
-      loadScripts(sArray).then(() => {
-        console.info('All Module-Scripts are loaded.')
-        resolve()
-      })
-    })
-  }
-
   loadCustomElements (elements) {
     const loadElement = (el) => {
       return new Promise((resolve, reject) => {
         const { name, url } = el
         import(url).then((module) => {
-          window.customElements.define(name, module.default)
           this.customElements.push(el)
+          window.customElements.define(name, module.default)
           module.default._onLoaded(el)
           console.info('CustomElement loaded:', name, url)
           resolve()
@@ -436,7 +396,6 @@ const mz = new _MZ()
 window.MZ = {
   sendMessage: mz.sendMessage.bind(mz),
   registerOnReadyJob: mz.registerOnReadyJob.bind(mz),
-  getTemplate: mz.getTemplate.bind(mz),
   getCustomConfig: mz.getCustomConfig.bind(mz),
   isMZReady: mz.isMZReady.bind(mz),
   getCustomElementDefinition: mz.getCustomElementDefinition.bind(mz),

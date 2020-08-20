@@ -85,7 +85,7 @@ class Messenger {
 
   leaveRoom (room) {
     this.socket.emit('LEAVE_ROOM', room)
-    this.socket._joinRoom.remove(room)
+    this.socket._joinRoom.delete(room)
   }
 
   parse (toString) {
